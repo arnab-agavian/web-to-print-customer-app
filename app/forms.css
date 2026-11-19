@@ -1,0 +1,10 @@
+:root{--font-display:"Arial Narrow",Impact,sans-serif;--font-body:Inter,Arial,sans-serif}
+.form-error{background:#fff0eb;color:#b63e20!important;padding:10px 12px;font-size:11px;line-height:1.4!important}
+.login-form input:disabled,.login-form button:disabled{cursor:not-allowed;opacity:.65}
+.signup-line a{font-weight:700;text-decoration:underline}
+.signup-submit{margin-top:24px}
+.button-spinner{width:14px;height:14px;border:2px solid #ffffff66;border-top-color:#fff;border-radius:50%;animation:button-spin .7s linear infinite}
+.form-success{margin-top:28px;padding:18px;background:#eff9dc;border-left:4px solid var(--lime);display:grid;gap:8px;font-size:13px;line-height:1.5}
+.form-success b{font:700 16px var(--font-display)}
+.form-success a{font-weight:700;text-decoration:underline;width:max-content}
+@keyframes button-spin{to{transform:rotate(360deg)}}
