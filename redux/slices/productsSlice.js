@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { getProducts } from '@/redux/api/productsApi';
-import { normalizeProducts } from '@/lib/normalizeProduct';
+import { getProductBySlug, getProducts } from '@/redux/api/productsApi';
+import { normalizeProduct, normalizeProducts } from '@/lib/normalizeProduct';
 
 export const fetchProducts = createAsyncThunk(
   'products/fetchProducts',
@@ -13,9 +13,37 @@ export const fetchProducts = createAsyncThunk(
   },
 );
 
+export const fetchProductBySlug = createAsyncThunk(
+  'products/fetchProductBySlug',
+  async (slug, { rejectWithValue }) => {
+    try {
+      return normalizeProduct(await getProductBySlug(slug));
+    } catch (error) {
+      return rejectWithValue({
+        message: error.message || 'Unable to load this product.',
+        status: error.status || null,
+      });
+    }
+  },
+  {
+    condition: (slug, { getState }) => {
+      const products = getState().products;
+      return !(products.detailStatus === 'loading' && products.requestedSlug === slug);
+    },
+  },
+);
+
 const productsSlice = createSlice({
   name: 'products',
-  initialState: { items: [], status: 'idle', error: null },
+  initialState: {
+    items: [],
+    status: 'idle',
+    error: null,
+    current: null,
+    requestedSlug: null,
+    detailStatus: 'idle',
+    detailError: null,
+  },
   reducers: {},
   extraReducers: (builder) => {
     builder
@@ -30,6 +58,21 @@ const productsSlice = createSlice({
       .addCase(fetchProducts.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload || action.error.message;
+      })
+      .addCase(fetchProductBySlug.pending, (state, action) => {
+        state.detailStatus = 'loading';
+        state.detailError = null;
+        state.requestedSlug = action.meta.arg;
+        if (state.current?.slug !== action.meta.arg) state.current = null;
+      })
+      .addCase(fetchProductBySlug.fulfilled, (state, action) => {
+        state.detailStatus = 'succeeded';
+        state.current = action.payload;
+      })
+      .addCase(fetchProductBySlug.rejected, (state, action) => {
+        state.detailStatus = 'failed';
+        state.current = null;
+        state.detailError = action.payload || { message: action.error.message };
       });
   },
 });

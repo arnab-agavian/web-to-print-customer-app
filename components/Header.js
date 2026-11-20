@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchCart, selectCartCount } from "@/redux/slices/cartSlice";
 import { signOut } from "@/redux/slices/authSlice";
+import { LoadingSpinner } from "./LoadingState";
 
 export default function Header({ dark = false }) {
   const [open, setOpen] = useState(false);
@@ -53,7 +54,7 @@ export default function Header({ dark = false }) {
             onClick={logOut}
             disabled={logoutStatus === "loading"}
           >
-            <LogOut size={19} />
+            {logoutStatus === "loading" ? <LoadingSpinner size="small" /> : <LogOut size={19} />}
           </button>
         ) : (
           <Link href="/login" className="icon-button" aria-label="Log in" title="Log in">

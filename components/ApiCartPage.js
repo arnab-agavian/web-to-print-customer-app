@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { Minus, PackageOpen, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import Header from './Header';
+import { LoadingOverlay } from './LoadingState';
 import {
   fetchCart,
   removeCartItem,
@@ -35,6 +36,7 @@ export default function ApiCartPage() {
         <div className="journey-hero"><span>YOUR PROJECTS</span><h1>Review your cart.</h1><p>Check the print specs and artwork before moving to delivery and payment.</p></div>
       </div>
       <div className="cart-layout">
+        {updating && <LoadingOverlay label="Updating your cart…" />}
         {status === 'loading' ? (
           <section className="empty-state"><h2>Loading your cart…</h2></section>
         ) : error && items.length === 0 ? (
@@ -49,6 +51,7 @@ export default function ApiCartPage() {
                 const configuration = item.configuration || {};
                 const productName = item.product?.name || item.productName || 'Print project';
                 const productSlug = item.product?.slug || item.productSlug || '';
+                const designId = configuration.designId;
                 return (
                   <article className="cart-item" key={item.id || item.key}>
                     <div className="cart-art" style={{ background: configuration.accent || item.color || '#dfe3df' }}>
@@ -64,7 +67,9 @@ export default function ApiCartPage() {
                           <b>{item.quantity}</b>
                           <button type="button" aria-label="Increase quantity" disabled={updating || !item.id} onClick={() => dispatch(updateCartItem({ id: item.id, changes: { quantity: item.quantity + 10 } }))}><Plus /></button>
                         </div>
-                        {productSlug && <Link href={`/configure/${productSlug}`}>Modify design</Link>}
+                        {productSlug && <Link href={designId
+                          ? `/configure/${productSlug}?designId=${encodeURIComponent(designId)}`
+                          : `/configure/${productSlug}`}>Modify design</Link>}
                         <button type="button" className="remove" disabled={updating || !item.id} onClick={() => dispatch(removeCartItem(item.id))}><Trash2 />Remove</button>
                       </div>
                     </div>

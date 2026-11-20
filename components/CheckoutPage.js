@@ -1,16 +1,219 @@
-'use client';
+"use client";
 
-import { CreditCard, LockKeyhole, PackageCheck } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useDispatch, useSelector } from 'react-redux';
-import Header from './Header';
-import { clearCart,selectCartSubtotal,selectCartTax,selectCartTotal } from '@/redux/slices/cartSlice';
-import { submitCheckout } from '@/redux/slices/checkoutSlice';
+import { CreditCard, LockKeyhole, PackageCheck } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useDispatch, useSelector } from "react-redux";
+import Header from "./Header";
+import { ButtonLoader } from "./LoadingState";
+import {
+  clearCart,
+  selectCartSubtotal,
+  selectCartTax,
+  selectCartTotal,
+} from "@/redux/slices/cartSlice";
+import { submitCheckout } from "@/redux/slices/checkoutSlice";
 
-const money=(value)=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2}).format(value||0);
+const money = (value) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 2,
+  }).format(value || 0);
 
-export default function CheckoutPage(){
- const router=useRouter();const dispatch=useDispatch();const items=useSelector((state)=>state.cart.items);const {status,error}=useSelector((state)=>state.checkout);const profile=useSelector((state)=>state.dashboard.profile);const subtotal=useSelector(selectCartSubtotal);const tax=useSelector(selectCartTax);const total=useSelector(selectCartTotal);const loading=status==='loading';
- async function placeOrder(event){event.preventDefault();const form=new FormData(event.currentTarget);const first=items[0];const result=await dispatch(submitCheckout({productSlug:first?.productSlug,productName:first?.productName,quantity:first?.quantity||1,total,subtotal,tax,items,configuration:{delivery:{fullName:form.get('fullName'),email:form.get('email'),phone:form.get('phone'),address:form.get('address'),city:form.get('city'),postalCode:form.get('postalCode')}},paymentMethod:'demo-card'}));if(submitCheckout.fulfilled.match(result)){dispatch(clearCart());router.push('/order-confirmation')}}
- return <main className="journey-page"><div className="journey-dark compact"><Header/><div className="journey-hero"><span>SECURE CHECKOUT</span><h1>Confirm the details.</h1><p>Demo payment is enabled. No real card will be charged.</p></div></div><form className="checkout-layout" onSubmit={placeOrder}><div className="checkout-forms"><section className="checkout-card"><div className="checkout-heading"><span>DELIVERY</span><h2>Where should it go?</h2></div><div className="checkout-grid"><label>Full name<input name="fullName" defaultValue={profile?.fullName||'Maya Brooks'} required/></label><label>Email<input name="email" type="email" defaultValue={profile?.email||'maya@example.com'} required/></label><label>Phone<input name="phone" defaultValue={profile?.phone||'+91 98765 43210'} required/></label><label>City<input name="city" defaultValue="Bengaluru" required/></label><label className="wide">Address<textarea name="address" defaultValue={profile?.address||'Indiranagar, Bengaluru, Karnataka'} required/></label><label>Postal code<input name="postalCode" defaultValue="560038" required/></label></div></section><section className="checkout-card"><div className="checkout-heading"><span>PAYMENT</span><h2>Demo card payment</h2></div><div className="demo-payment"><CreditCard/><div><b>Demo payment gateway</b><small>This simulates a successful payment while the real gateway API is pending.</small></div><span>DEMO</span></div>{error&&<p className="studio-error" role="alert">{error}</p>}</section></div><aside className="order-summary checkout-summary"><span>FINAL AMOUNT</span><h2>{items.length} print project{items.length===1?'':'s'}</h2><div className="checkout-items">{items.map((item)=><div key={item.key}><span>{item.productName}<small>{item.quantity} units</small></span><b>{money(item.total)}</b></div>)}</div><dl><div><dt>Subtotal</dt><dd>{money(subtotal)}</dd></div><div><dt>GST</dt><dd>{money(tax)}</dd></div><div className="total"><dt>Total</dt><dd>{money(total)}</dd></div></dl><button className="journey-button primary" disabled={loading||items.length===0}>{loading?'Processing demo payment…':<><LockKeyhole/>Pay & place order</>}</button><p><PackageCheck/>Order confirmation appears immediately after demo payment.</p></aside></form></main>;
+export default function CheckoutPage() {
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const items = useSelector((state) => state.cart.items);
+  const { status, error } = useSelector((state) => state.checkout);
+  const profile = useSelector((state) => state.dashboard.profile);
+  const subtotal = useSelector(selectCartSubtotal);
+  const tax = useSelector(selectCartTax);
+  const total = useSelector(selectCartTotal);
+  const loading = status === "loading";
+  async function placeOrder(event) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const first = items[0];
+    const result = await dispatch(
+      submitCheckout({
+        productSlug: first?.productSlug,
+        productName: first?.productName,
+        quantity: first?.quantity || 1,
+        total,
+        subtotal,
+        tax,
+        items,
+        configuration: {
+          delivery: {
+            fullName: form.get("fullName"),
+            email: form.get("email"),
+            phone: form.get("phone"),
+            address: form.get("address"),
+            city: form.get("city"),
+            postalCode: form.get("postalCode"),
+          },
+        },
+        paymentMethod: "demo-card",
+      }),
+    );
+    if (submitCheckout.fulfilled.match(result)) {
+      dispatch(clearCart());
+      router.push("/order-confirmation");
+    }
+  }
+  return (
+    <main className="journey-page">
+      <div className="journey-dark compact">
+        <Header />
+        <div className="journey-hero">
+          <span>SECURE CHECKOUT</span>
+          <h1>Confirm the details.</h1>
+          <p>Demo payment is enabled. No real card will be charged.</p>
+        </div>
+      </div>
+      <form
+        className="checkout-layout"
+        onSubmit={placeOrder}
+        aria-busy={loading}
+      >
+        <div className="checkout-forms">
+          <section className="checkout-card">
+            <div className="checkout-heading">
+              <span>DELIVERY</span>
+              <h2>Where should it go?</h2>
+            </div>
+            <div className="checkout-grid">
+              <label>
+                Full name
+                <input
+                  name="fullName"
+                  defaultValue={profile?.fullName || "Maya Brooks"}
+                  disabled={loading}
+                  required
+                />
+              </label>
+              <label>
+                Email
+                <input
+                  name="email"
+                  type="email"
+                  defaultValue={profile?.email || "maya@example.com"}
+                  disabled={loading}
+                  required
+                />
+              </label>
+              <label>
+                Phone
+                <input
+                  name="phone"
+                  defaultValue={profile?.phone || "+91 98765 43210"}
+                  disabled={loading}
+                  required
+                />
+              </label>
+              <label>
+                City
+                <input
+                  name="city"
+                  defaultValue="Bengaluru"
+                  disabled={loading}
+                  required
+                />
+              </label>
+              <label className="wide">
+                Address
+                <textarea
+                  name="address"
+                  defaultValue={
+                    profile?.address || "Indiranagar, Bengaluru, Karnataka"
+                  }
+                  disabled={loading}
+                  required
+                />
+              </label>
+              <label>
+                Postal code
+                <input
+                  name="postalCode"
+                  defaultValue="560038"
+                  disabled={loading}
+                  required
+                />
+              </label>
+            </div>
+          </section>
+          <section className="checkout-card">
+            <div className="checkout-heading">
+              <span>PAYMENT</span>
+              <h2>Demo card payment</h2>
+            </div>
+            <div className="demo-payment">
+              <CreditCard />
+              <div>
+                <b>Demo payment gateway</b>
+                <small>
+                  This simulates a successful payment while the real gateway API
+                  is pending.
+                </small>
+              </div>
+              <span>DEMO</span>
+            </div>
+            {error && (
+              <p className="studio-error" role="alert">
+                {error}
+              </p>
+            )}
+          </section>
+        </div>
+        <aside className="order-summary checkout-summary">
+          <span>FINAL AMOUNT</span>
+          <h2>
+            {items.length} print project{items.length === 1 ? "" : "s"}
+          </h2>
+          <div className="checkout-items">
+            {items.map((item) => (
+              <div key={item.key}>
+                <span>
+                  {item.productName}
+                  <small>{item.quantity} units</small>
+                </span>
+                <b>{money(item.total)}</b>
+              </div>
+            ))}
+          </div>
+          <dl>
+            <div>
+              <dt>Subtotal</dt>
+              <dd>{money(subtotal)}</dd>
+            </div>
+            <div>
+              <dt>GST</dt>
+              <dd>{money(tax)}</dd>
+            </div>
+            <div className="total">
+              <dt>Total</dt>
+              <dd>{money(total)}</dd>
+            </div>
+          </dl>
+          <button
+            className="journey-button primary"
+            disabled={loading || items.length === 0}
+          >
+            {loading ? (
+              <ButtonLoader label="Processing payment…" />
+            ) : (
+              <>
+                <LockKeyhole />
+                Pay & place order
+              </>
+            )}
+          </button>
+          <p>
+            <PackageCheck />
+            Order confirmation appears immediately after demo payment.
+          </p>
+        </aside>
+      </form>
+    </main>
+  );
 }

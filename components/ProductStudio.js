@@ -6,6 +6,7 @@ import { Check, Download, FileCheck2, ImagePlus, Minus, Plus, ShoppingBag, Type,
 import { useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
 import Header from './Header';
+import { LoadingOverlay } from './LoadingState';
 import { calculatePrice } from '@/lib/data';
 import { addCartItem } from '@/redux/slices/cartSlice';
 import {
@@ -81,7 +82,7 @@ function TemplateCanvas({ imagePreviews, scale, svgRef, template, values }) {
             y="0"
             width={canvasWidth}
             height={canvasHeight}
-            preserveAspectRatio="xMidYMid meet"
+            preserveAspectRatio="none"
             onError={() => setBackgroundFailed(true)}
           />
         )}
@@ -544,6 +545,14 @@ export default function ProductStudio({ product, designId = null }) {
     || designs.uploadStatus === 'loading'
     || cart.mutationStatus === 'loading';
   const stages = ['Configure', 'Personalise', 'Review proof'];
+  const proofLayers = (designs.current?.designData?.layers || designLayers)
+    .filter((layer) => Boolean(layer.value));
+  const selectedMaterialName = materialOptions.find((option) => option.multiplier === material)?.name
+    || product.material
+    || 'Standard material';
+  const designReference = designs.current?.id
+    ? designs.current.id.split('-')[0].toUpperCase()
+    : 'PENDING';
 
   return (
     <main className="studio-page" style={{ '--product-accent': product.accent }}>
@@ -665,7 +674,36 @@ export default function ProductStudio({ product, designId = null }) {
           {step === 3 && (
             <div className="studio-section">
               <h1>Review the proof.</h1>
-              <p>Confirm the API template, personalised values and production specification.</p>
+              <p>Check your product choices and personalised details before approving this design for production.</p>
+              <div className="proof-review">
+                <section className="proof-review-card">
+                  <span className="proof-review-label">Your print specification</span>
+                  <div className="proof-product-title">
+                    <div><b>{product.name}</b><small>{selectedMaterialName}</small></div>
+                    <strong>{quantity}<small>units</small></strong>
+                  </div>
+                  <dl>
+                    <div><dt>Finished size</dt><dd>{width} × {height} mm</dd></div>
+                    <div><dt>Design option</dt><dd>{designMethod === 'online' ? selectedTemplate?.name || 'Custom template' : 'Uploaded artwork'}</dd></div>
+                  </dl>
+                </section>
+                <section className="proof-review-card">
+                  <span className="proof-review-label">Your personalised details</span>
+                  <div className="proof-personalisation">
+                    {proofLayers.length > 0 ? proofLayers.map((layer) => (
+                      <div key={layer.key || layer.label}>
+                        <span>{layer.label || layer.key || 'Artwork'}</span>
+                        <strong>{layer.type === 'image' || layer.type === 'file' ? <><ImagePlus />File uploaded</> : layer.value}</strong>
+                      </div>
+                    )) : <p>No additional personalised details.</p>}
+                  </div>
+                </section>
+                <div className="proof-ready-state">
+                  <span><Check /></span>
+                  <div><b>Design ready for approval</b><small>Reference #{designReference}</small></div>
+                  <em>{designs.current?.status || 'Draft'}</em>
+                </div>
+              </div>
               <div className="proof-summary">
                 <div><b>{product.name}</b><span>{width} × {height} mm · {quantity} units</span></div>
                 <div><b>{selectedTemplate?.name || 'Uploaded artwork'}</b><span>{designLayers.map((layer) => layer.value).filter(Boolean).join(' · ') || artworkName}</span></div>
@@ -678,6 +716,7 @@ export default function ProductStudio({ product, designId = null }) {
           )}
         </section>
         <section className="studio-preview api-studio-preview">
+          {busy && <LoadingOverlay label={designs.uploadStatus === 'loading' ? 'Uploading artwork…' : cart.mutationStatus === 'loading' ? 'Adding to cart…' : designs.currentStatus === 'loading' ? 'Loading design…' : 'Validating design…'} />}
           <div className="preview-head"><span>{selectedTemplate?.name || 'Product canvas'}</span><div><FileCheck2 />Safe area from API</div></div>
           <div className="preview-stage api-preview-stage">
             {designMethod === 'online' ? (

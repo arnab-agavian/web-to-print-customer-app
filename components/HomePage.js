@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUpRight, MoveRight, ShieldCheck, Sparkles, Zap } from '
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import Header from './Header';
+import { ProductGridSkeleton } from './LoadingState';
 import { ProductMark } from './icons';
 import { fetchProducts } from '@/redux/slices/productsSlice';
 
@@ -38,6 +39,7 @@ export default function HomePage() {
     <section className="product-section" id="products">
       <div className="section-heading"><div><span className="eyebrow dark"><span/>PICK YOUR FORMAT</span><h2>What are we<br/>making today?</h2></div><p>Specialist print products from the live catalogue, ready to configure online.</p></div>
       <div className="product-grid">
+        {status === 'loading' && products.length === 0 && <ProductGridSkeleton />}
         {status === 'loading' && products.length === 0 && <p className="product-api-state">Loading productsâ€¦</p>}
         {status === 'failed' && <p className="product-api-state error" role="alert">{error}</p>}
         {products.map((p) => <Link href={`/configure/${p.slug}`} className="product-tile" style={{'--accent': p.accent}} key={p.slug}>

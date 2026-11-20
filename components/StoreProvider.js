@@ -1,9 +1,18 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { Provider } from 'react-redux';
+import { Provider, useSelector } from 'react-redux';
 import { makeStore } from '@/redux/store/store';
 import { restoreSession } from '@/redux/slices/authSlice';
+import { LoadingScreen } from './LoadingState';
+
+function AppBootstrap({ children }) {
+  const restoreStatus = useSelector((state) => state.auth.restoreStatus);
+  if (restoreStatus === 'idle' || restoreStatus === 'loading') {
+    return <LoadingScreen label="Restoring your session…" />;
+  }
+  return children;
+}
 
 export default function StoreProvider({ children }) {
   const storeRef = useRef(null);
@@ -18,5 +27,5 @@ export default function StoreProvider({ children }) {
     }
   }, []);
 
-  return <Provider store={storeRef.current}>{children}</Provider>;
+  return <Provider store={storeRef.current}><AppBootstrap>{children}</AppBootstrap></Provider>;
 }

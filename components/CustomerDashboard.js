@@ -24,6 +24,7 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useFormik } from "formik";
 import Header from "./Header";
+import { ButtonLoader, LoadingOverlay, LoadingState } from "./LoadingState";
 import { decodeAccessToken } from "@/redux/api/authSession";
 import { approveProof, requestProofChanges } from "@/redux/api/proofsApi";
 import {
@@ -189,7 +190,8 @@ function ProfileSection({ account, dashboard, dispatch }) {
       newAddress();
   }
   return (
-    <section className="dash-module">
+    <section className="dash-module" aria-busy={busy}>
+      {busy && <LoadingOverlay label="Updating delivery addresses…" />}
       <div className="module-heading">
         <span>ACCOUNT & PROFILE</span>
         <h2>Your account details.</h2>
@@ -378,7 +380,7 @@ function ProfileSection({ account, dashboard, dispatch }) {
           disabled={formik.isSubmitting || busy}
         >
           {formik.isSubmitting || busy
-            ? "Saving address…"
+            ? <ButtonLoader label="Saving address…" />
             : editingId
               ? "Update address"
               : "Save address"}
@@ -392,6 +394,7 @@ export default function CustomerDashboard() {
   const dispatch = useDispatch();
   const router = useRouter();
   const [proofMessage, setProofMessage] = useState("");
+  const [proofActionId, setProofActionId] = useState(null);
   const {
     items: orders,
     status: ordersStatus,
@@ -432,16 +435,21 @@ export default function CustomerDashboard() {
     router.push("/login");
   }
   async function handleProof(order, action) {
+    setProofActionId(order.id);
     setProofMessage("Updating proof…");
-    if (action === "approve") {
-      await approveProof(order.id);
-      setProofMessage(`${order.order_number} approved for production.`);
-    } else {
-      await requestProofChanges(
-        order.id,
-        "Please review the artwork alignment.",
-      );
-      setProofMessage(`Revision requested for ${order.order_number}.`);
+    try {
+      if (action === "approve") {
+        await approveProof(order.id);
+        setProofMessage(`${order.order_number} approved for production.`);
+      } else {
+        await requestProofChanges(
+          order.id,
+          "Please review the artwork alignment.",
+        );
+        setProofMessage(`Revision requested for ${order.order_number}.`);
+      }
+    } finally {
+      setProofActionId(null);
     }
   }
   function Orders({ reorder = false }) {
@@ -483,7 +491,7 @@ export default function CustomerDashboard() {
                   onClick={() => dispatch(reorderOrder(order.id))}
                 >
                   <RefreshCw />
-                  {reorderingId === order.id ? "Creating…" : "Reorder"}
+                  {reorderingId === order.id ? <ButtonLoader label="Creating…" /> : "Reorder"}
                 </button>
               ) : (
                 <Link href="/dashboard">View status</Link>
@@ -526,12 +534,13 @@ export default function CustomerDashboard() {
                 <small>{order.order_number}</small>
                 <h3>{order.product_name}</h3>
                 <p>Production proof · {order.quantity} units</p>
-                <button onClick={() => handleProof(order, "approve")}>
+                <button disabled={proofActionId === order.id} onClick={() => handleProof(order, "approve")}>
                   <Check />
-                  Approve proof
+                  {proofActionId === order.id ? <ButtonLoader label="Updating…" /> : "Approve proof"}
                 </button>
                 <button
                   className="outline"
+                  disabled={proofActionId === order.id}
                   onClick={() => handleProof(order, "change")}
                 >
                   Request changes
@@ -764,12 +773,12 @@ export default function CustomerDashboard() {
           </nav>
           <button onClick={logout} disabled={logoutStatus === "loading"}>
             <LogOut />
-            {logoutStatus === "loading" ? "Signing out…" : "Sign out"}
+            {logoutStatus === "loading" ? <ButtonLoader label="Signing out…" /> : "Sign out"}
           </button>
         </aside>
         <section className="dash-main">
-          {dashboard.status === "loading" ? (
-            <div className="dashboard-loading">Loading your workspace…</div>
+          {dashboard.status === "loading" || ordersStatus === "loading" ? (
+            <div className="dashboard-loading"><LoadingState label="Loading your workspace…" /></div>
           ) : (
             content
           )}
