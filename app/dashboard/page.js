@@ -1,3 +1,5 @@
 import CustomerDashboard from '@/components/CustomerDashboard';
-export default function Page(){return <CustomerDashboard/>}
+import AuthGuard from '@/components/AuthGuard';
+
+export default function Page(){return <AuthGuard><CustomerDashboard/></AuthGuard>}
 

@@ -172,6 +172,7 @@ export default function ProductStudio({ product, designId = null }) {
   const pricing = useSelector((state) => state.pricing);
   const designs = useSelector((state) => state.designs);
   const cart = useSelector((state) => state.cart);
+  const session = useSelector((state) => state.auth.session);
   const previewSvgRef = useRef(null);
   const templates = (product.configurationSchema?.templates || []).filter(
     (template) => template.active !== false,
@@ -230,8 +231,17 @@ export default function ProductStudio({ product, designId = null }) {
   useEffect(() => {
     dispatch(initializeConfigurator(defaults));
     dispatch(clearDesignValidation());
-    if (designId) dispatch(fetchDesignById(designId));
-  }, [designId, dispatch, product.slug]);
+    if (designId && session?.accessToken) dispatch(fetchDesignById(designId));
+  }, [designId, dispatch, product.slug, session?.accessToken]);
+
+  function requireSession() {
+    if (session?.accessToken) return true;
+    const returnTo = typeof window === 'undefined'
+      ? `/configure/${product.slug}`
+      : `${window.location.pathname}${window.location.search}`;
+    router.push(`/login?returnTo=${encodeURIComponent(returnTo)}`);
+    return false;
+  }
 
   useEffect(() => {
     const design = designs.current;
@@ -248,7 +258,7 @@ export default function ProductStudio({ product, designId = null }) {
       if (!layer.key) return;
       if (layer.type === 'image' && layer.value) {
         restoredMedia[layer.key] = {
-          signedUrl: layer.value,
+          publicUrl: layer.value,
           originalName: layer.label || layer.key,
           mimeType: 'image/*',
         };
@@ -274,11 +284,11 @@ export default function ProductStudio({ product, designId = null }) {
     setImagePreviews(restoredPreviews);
 
     if (restoredMethod === 'upload') {
-      const signedUrl = artworkLayer?.value || design.sourceFilePath;
-      if (signedUrl) {
+      const publicUrl = artworkLayer?.value || design.sourceFilePath;
+      if (publicUrl) {
         const originalName = design.name || artworkLayer?.label || 'Uploaded artwork';
         setUploadedArtwork({
-          signedUrl,
+          publicUrl,
           originalName,
           mimeType: artworkLayer?.type === 'image' ? 'image/*' : 'application/pdf',
         });
@@ -328,6 +338,7 @@ export default function ProductStudio({ product, designId = null }) {
 
   async function selectImage(key, rule, file) {
     if (!file) return;
+    if (!requireSession()) return;
     const acceptedTypes = rule.validation?.acceptedTypes || [];
     const maxSize = rule.validation?.maxSizeBytes;
     if (acceptedTypes.length && !acceptedTypes.includes(file.type)) {
@@ -347,7 +358,7 @@ export default function ProductStudio({ product, designId = null }) {
     const result = await dispatch(uploadDesignFile({ file, category: 'artwork' }));
     if (uploadDesignFile.fulfilled.match(result)) {
       setUploadedMedia((current) => ({ ...current, [key]: result.payload }));
-      setImagePreviews((current) => ({ ...current, [key]: result.payload.signedUrl }));
+      setImagePreviews((current) => ({ ...current, [key]: result.payload.publicUrl }));
       setPlaceholderErrors((current) => ({ ...current, [key]: null }));
     } else {
       setPlaceholderErrors((current) => ({
@@ -359,6 +370,7 @@ export default function ProductStudio({ product, designId = null }) {
 
   async function selectArtworkFile(file) {
     if (!file) return;
+    if (!requireSession()) return;
     const acceptedTypes = ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'];
     if (!acceptedTypes.includes(file.type)) {
       setPlaceholderErrors((current) => ({
@@ -392,7 +404,7 @@ export default function ProductStudio({ product, designId = null }) {
     const errors = {};
     placeholderEntries(selectedTemplate).forEach(([key, rule]) => {
       const value = String(placeholderValues[key] || '').trim();
-      const hasValue = rule.type === 'image' ? Boolean(uploadedMedia[key]?.signedUrl) : Boolean(value);
+      const hasValue = rule.type === 'image' ? Boolean(uploadedMedia[key]?.publicUrl) : Boolean(value);
       if (rule.required && !hasValue) errors[key] = `${rule.label} is required.`;
       if (rule.type === 'text' && value) {
         if (rule.validation?.maxLength && value.length > rule.validation.maxLength) {
@@ -417,10 +429,10 @@ export default function ProductStudio({ product, designId = null }) {
         key,
         ...rule,
         value: rule.type === 'image'
-          ? uploadedMedia[key]?.signedUrl || ''
+          ? uploadedMedia[key]?.publicUrl || ''
           : String(placeholderValues[key] || '').trim(),
       }))
-    : uploadedArtwork?.signedUrl
+    : uploadedArtwork?.publicUrl
       ? [{
         key: 'artwork',
         type: uploadedArtwork.mimeType?.startsWith('image/') ? 'image' : 'file',
@@ -438,7 +450,7 @@ export default function ProductStudio({ product, designId = null }) {
           maxSizeBytes: 10485760,
           acceptedTypes: ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'],
         },
-        value: uploadedArtwork.signedUrl,
+        value: uploadedArtwork.publicUrl,
       }]
       : [];
   const designPayload = {
@@ -456,8 +468,8 @@ export default function ProductStudio({ product, designId = null }) {
         designMethod,
       },
     },
-    ...(designMethod === 'upload' && uploadedArtwork?.signedUrl
-      ? { sourceFilePath: uploadedArtwork.signedUrl }
+    ...(designMethod === 'upload' && uploadedArtwork?.publicUrl
+      ? { sourceFilePath: uploadedArtwork.publicUrl }
       : {}),
     status: 'draft',
   };
@@ -482,16 +494,16 @@ export default function ProductStudio({ product, designId = null }) {
       return;
     }
 
-    if (uploadedArtwork?.signedUrl) {
+    if (uploadedArtwork?.publicUrl) {
       try {
-        const response = await fetch(uploadedArtwork.signedUrl);
+        const response = await fetch(uploadedArtwork.publicUrl);
         if (!response.ok) throw new Error('Preview download failed.');
         const blob = await response.blob();
         const objectUrl = URL.createObjectURL(blob);
         triggerDownload(objectUrl, uploadedArtwork.originalName || `${safeName}.${blob.type.split('/')[1] || 'file'}`);
         URL.revokeObjectURL(objectUrl);
       } catch {
-        triggerDownload(uploadedArtwork.signedUrl, uploadedArtwork.originalName || `${safeName}-artwork`);
+        triggerDownload(uploadedArtwork.publicUrl, uploadedArtwork.originalName || `${safeName}-artwork`);
       }
     }
   }
@@ -502,8 +514,9 @@ export default function ProductStudio({ product, designId = null }) {
       return;
     }
     if (step === 2) {
+      if (!requireSession()) return;
       if (designMethod === 'online' && !validateTemplateFields()) return;
-      if (designMethod === 'upload' && !uploadedArtwork?.signedUrl) {
+      if (designMethod === 'upload' && !uploadedArtwork?.publicUrl) {
         setPlaceholderErrors({ artwork: 'Upload production artwork before continuing.' });
         return;
       }
@@ -517,6 +530,7 @@ export default function ProductStudio({ product, designId = null }) {
       return;
     }
     if (!approved) return;
+    if (!requireSession()) return;
     const selectedMaterial = materialOptions.find((option) => option.multiplier === material);
     const result = await dispatch(addCartItem({
       productSlug: product.slug,
@@ -533,7 +547,7 @@ export default function ProductStudio({ product, designId = null }) {
         designText: displayText,
         designMethod,
         artworkName,
-        previewUrl: uploadedArtwork?.signedUrl || selectedTemplate?.thumbnailPath || '',
+        previewUrl: uploadedArtwork?.publicUrl || selectedTemplate?.thumbnailPath || '',
         accent: product.accent,
       },
     }));
@@ -722,7 +736,7 @@ export default function ProductStudio({ product, designId = null }) {
             {designMethod === 'online' ? (
               <TemplateCanvas template={selectedTemplate} values={placeholderValues} imagePreviews={imagePreviews} scale={scale} svgRef={previewSvgRef} />
             ) : (
-              <div className="api-upload-preview">{uploadedArtwork?.mimeType?.startsWith('image/') ? <img src={uploadedArtwork.signedUrl} alt={uploadedArtwork.originalName || 'Uploaded artwork'} /> : <><Upload /><b>{artworkName || 'Upload artwork'}</b></>}</div>
+              <div className="api-upload-preview">{uploadedArtwork?.mimeType?.startsWith('image/') ? <img src={uploadedArtwork.publicUrl} alt={uploadedArtwork.originalName || 'Uploaded artwork'} /> : <><Upload /><b>{artworkName || 'Upload artwork'}</b></>}</div>
             )}
             <span className="bleed-tag">{product.bleedMm || 3} mm bleed</span>
             <span className="safe-tag">Dashed line = safe area</span>

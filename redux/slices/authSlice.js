@@ -83,6 +83,7 @@ const authSlice = createSlice({
       state.signupComplete = false;
       state.requiresEmailConfirmation = false;
     },
+    sessionExpired: () => ({ ...initialState, restoreStatus: 'succeeded' }),
   },
   extraReducers: (builder) => {
     builder
@@ -138,5 +139,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearAuthFeedback } = authSlice.actions;
+export const { clearAuthFeedback, sessionExpired } = authSlice.actions;
 export default authSlice.reducer;

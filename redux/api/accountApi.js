@@ -6,8 +6,8 @@ export const createAddress = (address) =>
   apiInstance.post("/addresses", address);
 export const getAddress = (id) => apiInstance.get(`/addresses/${id}`);
 export const updateAddress = (id, address) =>
-  apiInstance.patch(`/addresses/${id}`, address);
+  apiInstance.put(`/addresses/${id}`, address);
 export const deleteAddress = (id) => apiInstance.delete(`/addresses/${id}`);
 export const setDefaultAddress = (id) =>
-  apiInstance.patch(`/addresses/${id}/default`);
+  apiInstance.put(`/addresses/${id}/default`);
 export const getInvoices = () => apiInstance.get("/invoices");

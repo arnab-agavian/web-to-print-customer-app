@@ -3,7 +3,8 @@
 import { useEffect, useRef } from 'react';
 import { Provider, useSelector } from 'react-redux';
 import { makeStore } from '@/redux/store/store';
-import { restoreSession } from '@/redux/slices/authSlice';
+import { restoreSession, sessionExpired } from '@/redux/slices/authSlice';
+import { SESSION_EXPIRED_EVENT } from '@/redux/api/authSession';
 import { LoadingScreen } from './LoadingState';
 
 function AppBootstrap({ children }) {
@@ -21,10 +22,13 @@ export default function StoreProvider({ children }) {
   if (!storeRef.current) storeRef.current = makeStore();
 
   useEffect(() => {
+    const handleExpiredSession = () => storeRef.current.dispatch(sessionExpired());
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleExpiredSession);
     if (!restoredRef.current) {
       restoredRef.current = true;
       storeRef.current.dispatch(restoreSession());
     }
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleExpiredSession);
   }, []);
 
   return <Provider store={storeRef.current}><AppBootstrap>{children}</AppBootstrap></Provider>;

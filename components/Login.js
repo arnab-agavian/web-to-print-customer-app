@@ -9,14 +9,22 @@ import {clearAuthFeedback,signIn as signInCustomer} from '@/redux/slices/authSli
 export default function Login(){
   const router=useRouter();
   const dispatch=useDispatch();
-  const {loginError,loginStatus}=useSelector((state)=>state.auth);
+  const {loginError,loginStatus,session}=useSelector((state)=>state.auth);
   const [show,setShow]=useState(false);
-  useEffect(()=>{dispatch(clearAuthFeedback())},[dispatch]);
+  const destination=()=>{
+    if(typeof window==='undefined')return '/dashboard';
+    const value=new URLSearchParams(window.location.search).get('returnTo');
+    return value?.startsWith('/')&&!value.startsWith('//')?value:'/dashboard';
+  };
+  useEffect(()=>{
+    dispatch(clearAuthFeedback());
+    if(session?.accessToken)router.replace(destination());
+  },[dispatch,router,session?.accessToken]);
   async function signIn(event){
     event.preventDefault();
     const form=new FormData(event.currentTarget);
     const result=await dispatch(signInCustomer({email:form.get('email'),password:form.get('password'),remember:form.get('remember')==='on'}));
-    if(signInCustomer.fulfilled.match(result))router.push('/dashboard');
+    if(signInCustomer.fulfilled.match(result))router.replace(destination());
   }
   return <main className="login-page">
     <section className="login-visual"><Link href="/" className="brand"><span className="brand-glyph">DH</span><span>Digital<br/>Heroes</span></Link><div className="login-poster"><span>MADE<br/>TO</span><b>MATTER.</b><small>YOUR PRINT. YOUR WAY.</small></div><p>One account. Every proof, order and bright idea in one place.</p></section>

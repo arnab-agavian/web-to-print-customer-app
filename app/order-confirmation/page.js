@@ -1,2 +1,4 @@
 import OrderConfirmation from '@/components/OrderConfirmation';
-export default function Page(){return <OrderConfirmation/>}
+import AuthGuard from '@/components/AuthGuard';
+
+export default function Page(){return <AuthGuard><OrderConfirmation/></AuthGuard>}

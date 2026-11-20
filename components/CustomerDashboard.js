@@ -25,6 +25,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useFormik } from "formik";
 import Header from "./Header";
 import { ButtonLoader, LoadingOverlay, LoadingState } from "./LoadingState";
+import ProofPreviewModal from "./ProofPreviewModal";
 import { decodeAccessToken } from "@/redux/api/authSession";
 import { approveProof, requestProofChanges } from "@/redux/api/proofsApi";
 import {
@@ -38,6 +39,7 @@ import {
   updateCustomerAddress,
 } from "@/redux/slices/dashboardSlice";
 import { fetchOrders, reorderOrder } from "@/redux/slices/ordersSlice";
+import { fetchSavedDesigns } from "@/redux/slices/designsSlice";
 import { signOut } from "@/redux/slices/authSlice";
 
 const productColors = {
@@ -95,6 +97,9 @@ const tokenDate = (value) =>
         timeStyle: "short",
       }).format(new Date(value * 1000))
     : "—";
+const proofPreviewValue = (proof = {}) =>
+  proof.previewUrl || proof.publicUrl || proof.previewPath || proof.previewpath || proof.preview_path || "";
+const isAbsolutePreviewUrl = (value = "") => /^https?:\/\//i.test(value);
 const validateAddress = (values) => {
   const errors = {};
   if (!values.label.trim()) errors.label = "Address label is required.";
@@ -395,17 +400,28 @@ export default function CustomerDashboard() {
   const router = useRouter();
   const [proofMessage, setProofMessage] = useState("");
   const [proofActionId, setProofActionId] = useState(null);
+  const [changeRequestId, setChangeRequestId] = useState(null);
+  const [changeRequestText, setChangeRequestText] = useState("");
+  const [proofError, setProofError] = useState("");
+  const [previewModal, setPreviewModal] = useState(null);
   const {
     items: orders,
     status: ordersStatus,
+    error: ordersError,
     reorderingId,
   } = useSelector((state) => state.orders);
   const dashboard = useSelector((state) => state.dashboard);
+  const designsState = useSelector((state) => state.designs);
   const { user, session, logoutStatus } = useSelector((state) => state.auth);
   useEffect(() => {
-    if (ordersStatus === "idle") dispatch(fetchOrders());
+    dispatch(fetchOrders());
+  }, [dispatch]);
+  useEffect(() => {
     if (dashboard.status === "idle") dispatch(fetchDashboardData());
-  }, [dispatch, ordersStatus, dashboard.status]);
+  }, [dashboard.status, dispatch]);
+  useEffect(() => {
+    if (dashboard.activeModule === "designs") dispatch(fetchSavedDesigns());
+  }, [dashboard.activeModule, dispatch]);
   const claims = decodeAccessToken(session?.accessToken) || {};
   const profile = dashboard.profile || {};
   const account = {
@@ -430,29 +446,42 @@ export default function CustomerDashboard() {
     (order) =>
       order.status === "proof" || order.proof_status === "awaiting_approval",
   );
+  const proofEntries = orders.flatMap((order) => (Array.isArray(order.proofs) ? order.proofs : [])
+    .filter((proof) => proof.status === "pending")
+    .map((proof) => ({ order, proof })));
   async function logout() {
     await dispatch(signOut());
     router.push("/login");
   }
-  async function handleProof(order, action) {
-    setProofActionId(order.id);
+  async function handleProof(order, proof, action, message = "") {
+    setProofActionId(proof.id);
+    setProofError("");
     setProofMessage("Updating proof…");
     try {
       if (action === "approve") {
-        await approveProof(order.id);
-        setProofMessage(`${order.order_number} approved for production.`);
+        await approveProof(proof.id);
+        setProofMessage(`${order.order_number} proof version ${proof.version} approved for production.`);
       } else {
-        await requestProofChanges(
-          order.id,
-          "Please review the artwork alignment.",
-        );
-        setProofMessage(`Revision requested for ${order.order_number}.`);
+        const requestMessage = message.trim();
+        if (requestMessage.length < 5) {
+          setProofMessage("");
+          setProofError("Describe the requested change using at least 5 characters.");
+          return;
+        }
+        await requestProofChanges(proof.id, requestMessage);
+        setProofMessage(`Changes requested for ${order.order_number}, proof version ${proof.version}.`);
+        setChangeRequestId(null);
+        setChangeRequestText("");
       }
+      await dispatch(fetchOrders());
+    } catch (error) {
+      setProofMessage("");
+      setProofError(error.message || "Unable to update this proof.");
     } finally {
       setProofActionId(null);
     }
   }
-  function Orders({ reorder = false }) {
+  function Orders({ reorder = false } = {}) {
     return (
       <section className="dash-module">
         <div className="module-heading">
@@ -465,12 +494,20 @@ export default function CustomerDashboard() {
           <p>
             {reorder
               ? "Select a previous job and create a new order with the same production setup."
-              : "Track proof, production and completion status."}
+              : `Track proof, production and completion status for all ${orders.length} orders.`}
           </p>
         </div>
+        {ordersError && <p className="form-error" role="alert">{ordersError}</p>}
         <div className="module-orders">
           {orders.map((order) => (
-            <article key={order.id}>
+            <article
+              className={!reorder ? "order-clickable" : ""}
+              key={order.id}
+              role={!reorder ? "link" : undefined}
+              tabIndex={!reorder ? 0 : undefined}
+              onClick={!reorder ? () => router.push(`/orders/${order.id}`) : undefined}
+              onKeyDown={!reorder ? (event) => { if (event.key === "Enter") router.push(`/orders/${order.id}`); } : undefined}
+            >
               <i
                 style={{
                   background: productColors[order.product_name] || "#7868ff",
@@ -494,11 +531,12 @@ export default function CustomerDashboard() {
                   {reorderingId === order.id ? <ButtonLoader label="Creating…" /> : "Reorder"}
                 </button>
               ) : (
-                <Link href="/dashboard">View status</Link>
+                <Link href={`/orders/${order.id}`} onClick={(event) => event.stopPropagation()}>View details</Link>
               )}
             </article>
           ))}
         </div>
+        {!ordersError && orders.length === 0 && <p className="module-empty">No orders have been placed yet.</p>}
       </section>
     );
   }
@@ -553,7 +591,58 @@ export default function CustomerDashboard() {
       </section>
     );
   }
+  function ProofActions() {
+    return (
+      <section className="dash-module">
+        <div className="module-heading">
+          <span>ACTIVE PROOFS</span>
+          <h2>Review before we print.</h2>
+          <p>Approve the exact proof version or tell the studio precisely what needs to change.</p>
+        </div>
+        {proofMessage && <div className="module-message"><Check />{proofMessage}</div>}
+        {proofError && <p className="form-error" role="alert">{proofError}</p>}
+        <div className="proof-grid">
+          {proofEntries.map(({ order, proof }) => {
+            const preview = proofPreviewValue(proof);
+            const hasPreviewUrl = isAbsolutePreviewUrl(preview);
+            const previewTitle = `${order.order_number} proof version ${proof.version}`;
+            return (
+            <article key={proof.id}>
+              {hasPreviewUrl ? (
+                <button type="button" className="proof-visual has-preview" style={{ background: productColors[order.product_name] || "#7868ff" }} onClick={() => setPreviewModal({ preview, title: previewTitle })} aria-label={`Open ${previewTitle}`}>
+                  <img src={preview} alt={previewTitle} />
+                  <div><b>{order.product_name}</b><span>PROOF V{proof.version} · Click to preview</span></div>
+                </button>
+              ) : (
+                <div className="proof-visual" style={{ background: productColors[order.product_name] || "#7868ff" }}>
+                  <div><b>{order.product_name}</b><span>PROOF V{proof.version}</span></div>
+                </div>
+              )}
+              <div>
+                <small>{order.order_number}</small>
+                <h3>{order.product_name}</h3>
+                <p>Production proof · {order.quantity} units{proof.notes ? <><br />{proof.notes}</> : null}</p>
+                {hasPreviewUrl ? <button type="button" className="proof-preview-link" onClick={() => setPreviewModal({ preview, title: previewTitle })}>Open proof preview</button> : preview ? <div className="proof-preview-path"><span>Preview storage path</span><code title={preview}>{preview}</code><small>This private file needs a signed preview URL before it can open.</small></div> : <p className="proof-preview-missing">No preview file has been attached.</p>}
+                <button disabled={proofActionId === proof.id} onClick={() => handleProof(order, proof, "approve")}><Check />{proofActionId === proof.id ? <ButtonLoader label="Updating…" /> : "Approve proof"}</button>
+                <button className="outline" disabled={proofActionId === proof.id} onClick={() => { setChangeRequestId(proof.id); setChangeRequestText(""); setProofError(""); }}>Request changes</button>
+                {changeRequestId === proof.id && (
+                  <form className="proof-change-form" onSubmit={(event) => { event.preventDefault(); handleProof(order, proof, "change", changeRequestText); }}>
+                    <label htmlFor={`proof-change-${proof.id}`}>What should be changed?</label>
+                    <textarea id={`proof-change-${proof.id}`} value={changeRequestText} minLength="5" maxLength="2000" placeholder="Please move the race number slightly higher." disabled={proofActionId === proof.id} onChange={(event) => setChangeRequestText(event.target.value)} required />
+                    <small>{changeRequestText.length}/2000</small>
+                    <div><button type="button" className="outline" disabled={proofActionId === proof.id} onClick={() => { setChangeRequestId(null); setChangeRequestText(""); }}>Cancel</button><button type="submit" disabled={proofActionId === proof.id || changeRequestText.trim().length < 5}>{proofActionId === proof.id ? <ButtonLoader label="Sending…" /> : "Send request"}</button></div>
+                  </form>
+                )}
+              </div>
+            </article>
+          );})}
+        </div>
+        {proofEntries.length === 0 && <p className="module-empty">No proofs currently need attention.</p>}
+      </section>
+    );
+  }
   function Designs() {
+    const savedDesigns = designsState.saved || [];
     return (
       <section className="dash-module">
         <div className="module-heading">
@@ -564,21 +653,24 @@ export default function CustomerDashboard() {
             configuration.
           </p>
         </div>
-        <div className="saved-design-grid">
-          {dashboard.designs.map((design) => (
-            <article key={design.id}>
-              <div style={{ background: design.color }}>
-                <strong>{design.designText}</strong>
-                <small>{design.productName}</small>
-              </div>
-              <h3>{design.name}</h3>
-              <p>Updated {date(design.updatedAt)}</p>
-              <Link href={`/configure/${design.productSlug}`}>
-                Reuse design
-              </Link>
-            </article>
-          ))}
-        </div>
+        {designsState.savedStatus === "loading" ? <LoadingState label="Loading saved designs…" /> : designsState.savedError ? <div className="form-error" role="alert">{designsState.savedError}<button type="button" onClick={() => dispatch(fetchSavedDesigns())}>Try again</button></div> : <div className="saved-design-grid">
+          {savedDesigns.map((design) => {
+            const layers = Array.isArray(design.designData?.layers) ? design.designData.layers : [];
+            const textValue = layers.find((layer) => layer.type === "text" && layer.value)?.value || "DESIGN";
+            const productName = design.product?.name || design.productName || "Custom print";
+            const productSlug = design.product?.slug || design.productSlug;
+            return (
+              <article key={design.id}>
+                <div style={{ background: design.color || "#7868ff" }}><strong>{textValue}</strong><small>{productName}</small></div>
+                <span className={`design-status ${design.status || "draft"}`}>{design.status || "draft"}</span>
+                <h3>{design.name}</h3>
+                <p>Updated {date(design.updatedAt || design.updated_at)}</p>
+                {productSlug && <Link href={`/configure/${productSlug}?designId=${encodeURIComponent(design.id)}`}>Open design</Link>}
+              </article>
+            );
+          })}
+          {savedDesigns.length === 0 && <p className="module-empty">No saved designs yet.</p>}
+        </div>}
       </section>
     );
   }
@@ -706,7 +798,7 @@ export default function CustomerDashboard() {
         </div>
         <div className="module-orders compact">
           {orders.slice(0, 3).map((order) => (
-            <article key={order.id}>
+            <article className="order-clickable" key={order.id} role="link" tabIndex="0" onClick={() => router.push(`/orders/${order.id}`)} onKeyDown={(event) => { if (event.key === "Enter") router.push(`/orders/${order.id}`); }}>
               <i
                 style={{
                   background: productColors[order.product_name] || "#7868ff",
@@ -727,7 +819,7 @@ export default function CustomerDashboard() {
     );
   }
   const content = {
-    overview: <Overview />,
+    overview: Overview(),
     profile: (
       <ProfileSection
         account={account}
@@ -735,11 +827,11 @@ export default function CustomerDashboard() {
         dispatch={dispatch}
       />
     ),
-    orders: <Orders />,
-    proofs: <Proofs />,
-    designs: <Designs />,
-    reorder: <Orders reorder />,
-    invoices: <Invoices />,
+    orders: Orders(),
+    proofs: ProofActions(),
+    designs: Designs(),
+    reorder: Orders({ reorder: true }),
+    invoices: Invoices(),
   }[dashboard.activeModule];
   return (
     <main className="dashboard-page">
@@ -784,6 +876,7 @@ export default function CustomerDashboard() {
           )}
         </section>
       </div>
+      <ProofPreviewModal preview={previewModal?.preview} title={previewModal?.title} onClose={() => setPreviewModal(null)} />
     </main>
   );
 }
