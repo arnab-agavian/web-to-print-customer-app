@@ -31,3 +31,28 @@ export function clearStoredSession() {
 export function getAccessToken() {
   return getStoredSession()?.accessToken || null;
 }
+
+export function decodeAccessToken(token = getAccessToken()) {
+  if (typeof window === 'undefined' || !token || typeof token !== 'string') return null;
+
+  try {
+    const [, encodedPayload] = token.split('.');
+    if (!encodedPayload) return null;
+
+    const normalizedPayload = encodedPayload
+      .replace(/-/g, '+')
+      .replace(/_/g, '/')
+      .padEnd(Math.ceil(encodedPayload.length / 4) * 4, '=');
+    const payload = decodeURIComponent(
+      window
+        .atob(normalizedPayload)
+        .split('')
+        .map((character) => `%${character.charCodeAt(0).toString(16).padStart(2, '0')}`)
+        .join(''),
+    );
+
+    return JSON.parse(payload);
+  } catch {
+    return null;
+  }
+}

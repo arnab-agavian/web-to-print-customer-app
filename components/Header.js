@@ -1,14 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { Menu, ShoppingBag, UserRound } from "lucide-react";
-import { useState } from "react";
-import { useSelector } from "react-redux";
-import { selectCartCount } from "@/redux/slices/cartSlice";
+import { LogOut, Menu, ShoppingBag, UserRound } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchCart, selectCartCount } from "@/redux/slices/cartSlice";
+import { signOut } from "@/redux/slices/authSlice";
 
 export default function Header({ dark = false }) {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
+  const dispatch = useDispatch();
   const cartCount = useSelector(selectCartCount);
+  const cartStatus = useSelector((state) => state.cart.status);
+  const { session, logoutStatus } = useSelector((state) => state.auth);
+  const isAuthenticated = Boolean(session?.accessToken);
+
+  useEffect(() => {
+    if (isAuthenticated && cartStatus === "idle") dispatch(fetchCart());
+  }, [cartStatus, dispatch, isAuthenticated]);
+
+  async function logOut() {
+    await dispatch(signOut());
+    router.push("/login");
+  }
+
   return (
     <header className={`site-header ${dark ? "header-dark" : ""}`}>
       <Link href="/" className="brand" aria-label="Digital Heroes home">
@@ -27,9 +44,22 @@ export default function Header({ dark = false }) {
         <Link href="/dashboard">Dashboard</Link>
       </nav>
       <div className="header-actions">
-        <Link href="/login" className="icon-button" aria-label="Account">
-          <UserRound size={19} />
-        </Link>
+        {isAuthenticated ? (
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="Log out"
+            title="Log out"
+            onClick={logOut}
+            disabled={logoutStatus === "loading"}
+          >
+            <LogOut size={19} />
+          </button>
+        ) : (
+          <Link href="/login" className="icon-button" aria-label="Log in" title="Log in">
+            <UserRound size={19} />
+          </Link>
+        )}
         <Link href="/cart" className="icon-button" aria-label="Cart">
           <ShoppingBag size={19} />
           {cartCount > 0 && <span className="cart-count">{cartCount}</span>}

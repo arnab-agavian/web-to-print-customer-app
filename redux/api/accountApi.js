@@ -1,5 +1,13 @@
-import { apiInstance } from './apiClient';
+import { apiInstance } from "./apiClient";
 
-export const getProfile = () => apiInstance.get('/account/profile');
-export const updateProfile = (profile) => apiInstance.patch('/account/profile', profile);
-export const getInvoices = () => apiInstance.get('/invoices');
+export const getProfile = () => apiInstance.get("/account/profile");
+export const getAddresses = () => apiInstance.get("/addresses");
+export const createAddress = (address) =>
+  apiInstance.post("/addresses", address);
+export const getAddress = (id) => apiInstance.get(`/addresses/${id}`);
+export const updateAddress = (id, address) =>
+  apiInstance.patch(`/addresses/${id}`, address);
+export const deleteAddress = (id) => apiInstance.delete(`/addresses/${id}`);
+export const setDefaultAddress = (id) =>
+  apiInstance.patch(`/addresses/${id}/default`);
+export const getInvoices = () => apiInstance.get("/invoices");

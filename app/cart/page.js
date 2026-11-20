@@ -1,2 +1,2 @@
-import CartPage from '@/components/CartPage';
+import CartPage from '@/components/ApiCartPage';
 export default function Page(){return <CartPage/>}

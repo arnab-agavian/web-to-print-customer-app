@@ -10,7 +10,7 @@ import { fetchProducts } from '@/redux/slices/productsSlice';
 
 export default function HomePage() {
   const dispatch = useDispatch();
-  const { items: products, status } = useSelector((state) => state.products);
+  const { items: products, status, error } = useSelector((state) => state.products);
   useEffect(()=>{if(status==='idle')dispatch(fetchProducts())},[dispatch,status]);
   return <main>
     <section className="hero-shell">
@@ -36,8 +36,10 @@ export default function HomePage() {
     </section>
 
     <section className="product-section" id="products">
-      <div className="section-heading"><div><span className="eyebrow dark"><span/>PICK YOUR FORMAT</span><h2>What are we<br/>making today?</h2></div><p>Six specialist print divisions. One simple way to bring your idea to life.</p></div>
+      <div className="section-heading"><div><span className="eyebrow dark"><span/>PICK YOUR FORMAT</span><h2>What are we<br/>making today?</h2></div><p>Specialist print products from the live catalogue, ready to configure online.</p></div>
       <div className="product-grid">
+        {status === 'loading' && products.length === 0 && <p className="product-api-state">Loading productsâ€¦</p>}
+        {status === 'failed' && <p className="product-api-state error" role="alert">{error}</p>}
         {products.map((p) => <Link href={`/configure/${p.slug}`} className="product-tile" style={{'--accent': p.accent}} key={p.slug}>
           <div className="tile-top"><span>{p.code}</span><ArrowUpRight size={20}/></div>
           <ProductMark shape={p.shape}/><div><h3>{p.name}</h3><p>{p.description}</p></div>
