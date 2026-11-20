@@ -378,15 +378,19 @@ export async function demoApiAdapter(config) {
     return success(config, priceFor(data));
   if (url === "/orders" && method === "get") return success(config, demoOrders);
   if (url === "/orders" && method === "post") {
+    const firstItem = data.items?.[0] || {};
+    const product = demoProducts.find((item) => item.slug === firstItem.productSlug) || demoProducts[0];
+    const pricedItems = (data.items || []).map((item) => priceFor(item));
     const order = {
       id: `order-${Date.now()}`,
       order_number: `DH-${String(Date.now()).slice(-4)}`,
       customer_id: "demo-customer",
       customer_name: profile.fullName,
-      product_name: data.productName,
-      product_slug: data.productSlug,
-      quantity: data.quantity,
-      total: data.total,
+      product_name: product.name,
+      product_slug: firstItem.productSlug,
+      quantity: (data.items || []).reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+      total: Number(pricedItems.reduce((sum, item) => sum + item.total, 0).toFixed(2)),
+      items: data.items,
       status: "order",
       proof_status: "not_started",
       created_at: new Date().toISOString(),

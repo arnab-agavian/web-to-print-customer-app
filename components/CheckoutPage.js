@@ -1,17 +1,19 @@
 "use client";
 
-import { CreditCard, LockKeyhole, PackageCheck } from "lucide-react";
+import { Check, CreditCard, LockKeyhole, MapPin, PackageCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Header from "./Header";
-import { ButtonLoader } from "./LoadingState";
+import { ButtonLoader, LoadingState } from "./LoadingState";
 import {
-  clearCart,
+  clearServerCart,
   selectCartSubtotal,
   selectCartTax,
   selectCartTotal,
 } from "@/redux/slices/cartSlice";
 import { submitCheckout } from "@/redux/slices/checkoutSlice";
+import { fetchCustomerAddresses } from "@/redux/slices/dashboardSlice";
 
 const money = (value) =>
   new Intl.NumberFormat("en-IN", {
@@ -23,41 +25,74 @@ const money = (value) =>
 export default function CheckoutPage() {
   const router = useRouter();
   const dispatch = useDispatch();
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
   const items = useSelector((state) => state.cart.items);
   const { status, error } = useSelector((state) => state.checkout);
-  const profile = useSelector((state) => state.dashboard.profile);
+  const { addresses, addressError, addressStatus } = useSelector((state) => state.dashboard);
   const subtotal = useSelector(selectCartSubtotal);
   const tax = useSelector(selectCartTax);
   const total = useSelector(selectCartTotal);
   const loading = status === "loading";
+  const addressLoading = addressStatus === "idle" || addressStatus === "loading";
+  const selectedAddress = addresses.find((address) => (address.id || address._id) === selectedAddressId)
+    || addresses.find((address) => address.isDefault)
+    || addresses[0];
+
+  useEffect(() => {
+    if (addressStatus === "idle") dispatch(fetchCustomerAddresses());
+  }, [addressStatus, dispatch]);
+
+  useEffect(() => {
+    if (!addresses.length) return;
+    const selectedStillExists = addresses.some((address) => (address.id || address._id) === selectedAddressId);
+    if (!selectedStillExists) {
+      const preferred = addresses.find((address) => address.isDefault) || addresses[0];
+      setSelectedAddressId(preferred.id || preferred._id);
+    }
+  }, [addresses, selectedAddressId]);
+
   async function placeOrder(event) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const first = items[0];
+    if (!selectedAddress) return;
+    const deliveryAddress = {
+      id: selectedAddress.id || selectedAddress._id,
+      label: selectedAddress.label,
+      recipientName: selectedAddress.recipientName,
+      phone: selectedAddress.phone,
+      addressLine1: selectedAddress.addressLine1,
+      addressLine2: selectedAddress.addressLine2 || null,
+      city: selectedAddress.city,
+      state: selectedAddress.state,
+      postalCode: selectedAddress.postalCode,
+      countryCode: selectedAddress.countryCode,
+      isDefault: Boolean(selectedAddress.isDefault),
+    };
+    const orderItems = items.map((item) => ({
+      productSlug: item.product?.slug || item.productSlug,
+      width: Number(item.width),
+      height: Number(item.height),
+      quantity: Number(item.quantity),
+      material: item.material || "standard",
+      materialMultiplier: Number(item.materialMultiplier || 1),
+      ...(item.configuration?.designId ? { designId: item.configuration.designId } : {}),
+      configuration: item.configuration || {},
+    }));
     const result = await dispatch(
       submitCheckout({
-        productSlug: first?.productSlug,
-        productName: first?.productName,
-        quantity: first?.quantity || 1,
-        total,
-        subtotal,
-        tax,
-        items,
-        configuration: {
-          delivery: {
-            fullName: form.get("fullName"),
-            email: form.get("email"),
-            phone: form.get("phone"),
-            address: form.get("address"),
-            city: form.get("city"),
-            postalCode: form.get("postalCode"),
+        amount: total,
+        paymentMethod: "demo-card",
+        order: {
+          items: orderItems,
+          configuration: {
+            delivery: "standard",
+            deliveryAddressId: deliveryAddress.id,
+            deliveryAddress,
           },
         },
-        paymentMethod: "demo-card",
       }),
     );
     if (submitCheckout.fulfilled.match(result)) {
-      dispatch(clearCart());
+      await dispatch(clearServerCart());
       router.push("/order-confirmation");
     }
   }
@@ -82,65 +117,40 @@ export default function CheckoutPage() {
               <span>DELIVERY</span>
               <h2>Where should it go?</h2>
             </div>
-            <div className="checkout-grid">
-              <label>
-                Full name
-                <input
-                  name="fullName"
-                  defaultValue={profile?.fullName || "Maya Brooks"}
-                  disabled={loading}
-                  required
-                />
-              </label>
-              <label>
-                Email
-                <input
-                  name="email"
-                  type="email"
-                  defaultValue={profile?.email || "maya@example.com"}
-                  disabled={loading}
-                  required
-                />
-              </label>
-              <label>
-                Phone
-                <input
-                  name="phone"
-                  defaultValue={profile?.phone || "+91 98765 43210"}
-                  disabled={loading}
-                  required
-                />
-              </label>
-              <label>
-                City
-                <input
-                  name="city"
-                  defaultValue="Bengaluru"
-                  disabled={loading}
-                  required
-                />
-              </label>
-              <label className="wide">
-                Address
-                <textarea
-                  name="address"
-                  defaultValue={
-                    profile?.address || "Indiranagar, Bengaluru, Karnataka"
-                  }
-                  disabled={loading}
-                  required
-                />
-              </label>
-              <label>
-                Postal code
-                <input
-                  name="postalCode"
-                  defaultValue="560038"
-                  disabled={loading}
-                  required
-                />
-              </label>
-            </div>
+            {addressLoading ? (
+              <LoadingState label="Loading delivery addresses…" compact />
+            ) : addressError ? (
+              <div className="checkout-address-error" role="alert">
+                <p>{addressError}</p>
+                <button type="button" onClick={() => dispatch(fetchCustomerAddresses())}>Try again</button>
+              </div>
+            ) : addresses.length > 0 ? (
+              <div className="checkout-addresses" role="radiogroup" aria-label="Delivery address">
+                {addresses.map((address) => {
+                  const id = address.id || address._id;
+                  const selected = selectedAddress?.id === id || selectedAddress?._id === id;
+                  return (
+                    <label className={selected ? "selected" : ""} key={id}>
+                      <input type="radio" name="deliveryAddress" value={id} checked={selected} disabled={loading} onChange={() => setSelectedAddressId(id)} />
+                      <MapPin />
+                      <span>
+                        <b>{address.label || "Delivery address"}{address.isDefault && <em>Default</em>}</b>
+                        <strong>{address.recipientName}</strong>
+                        <small>{address.addressLine1}{address.addressLine2 ? `, ${address.addressLine2}` : ""}<br />{address.city}, {address.state} {address.postalCode}<br />{address.phone}</small>
+                      </span>
+                      {selected && <Check className="address-selected-icon" />}
+                    </label>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="checkout-address-empty">
+                <MapPin />
+                <b>No delivery address found.</b>
+                <p>Add an address from your customer dashboard before placing this order.</p>
+                <button type="button" onClick={() => router.push("/dashboard")}>Add an address</button>
+              </div>
+            )}
           </section>
           <section className="checkout-card">
             <div className="checkout-heading">
@@ -172,12 +182,12 @@ export default function CheckoutPage() {
           </h2>
           <div className="checkout-items">
             {items.map((item) => (
-              <div key={item.key}>
+              <div key={item.id || item.key}>
                 <span>
-                  {item.productName}
+                  {item.product?.name || item.productName}
                   <small>{item.quantity} units</small>
                 </span>
-                <b>{money(item.total)}</b>
+                <b>{money(item.price?.total ?? item.total)}</b>
               </div>
             ))}
           </div>
@@ -197,7 +207,7 @@ export default function CheckoutPage() {
           </dl>
           <button
             className="journey-button primary"
-            disabled={loading || items.length === 0}
+            disabled={loading || addressLoading || !selectedAddress || items.length === 0}
           >
             {loading ? (
               <ButtonLoader label="Processing payment…" />
