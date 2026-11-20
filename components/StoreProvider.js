@@ -22,6 +22,12 @@ export default function StoreProvider({ children }) {
   if (!storeRef.current) storeRef.current = makeStore();
 
   useEffect(() => {
+    const hashParameters = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    if (hashParameters.has('access_token')) {
+      window.location.replace('/login');
+      return undefined;
+    }
+
     const handleExpiredSession = () => storeRef.current.dispatch(sessionExpired());
     window.addEventListener(SESSION_EXPIRED_EVENT, handleExpiredSession);
     if (!restoredRef.current) {

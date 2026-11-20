@@ -465,8 +465,7 @@ export async function demoApiAdapter(config) {
       mimeType: "image/png",
       size: 1024,
       category: "artwork",
-      signedUrl: "https://example.com/demo-upload.png",
-      signedUrlExpiresIn: 3600,
+      publicUrl: "https://example.com/demo-upload.png",
     }, 201);
   }
   if (url === "/designs" && method === "get")
