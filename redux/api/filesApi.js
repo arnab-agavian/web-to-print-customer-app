@@ -5,7 +5,9 @@ export const uploadFile = (file, category = "artwork") => {
   body.append("file", file);
   body.append("category", category);
 
-  return apiInstance.post("/files/upload", body, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+  return apiInstance
+    .post("/files/upload", body, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+    .then((result) => result?.data || result);
 };

@@ -1,4 +1,5 @@
 const SESSION_KEY = 'digital-heroes-auth-session';
+export const SESSION_EXPIRED_EVENT = 'digital-heroes:session-expired';
 
 export function getStoredSession() {
   if (typeof window === 'undefined') return null;
@@ -26,6 +27,10 @@ export function clearStoredSession() {
     window.localStorage.removeItem(SESSION_KEY);
     window.sessionStorage.removeItem(SESSION_KEY);
   }
+}
+
+export function notifySessionExpired() {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
 }
 
 export function getAccessToken() {

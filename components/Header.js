@@ -24,7 +24,7 @@ export default function Header({ dark = false }) {
 
   async function logOut() {
     await dispatch(signOut());
-    router.push("/login");
+    router.replace("/login");
   }
 
   return (
@@ -42,7 +42,9 @@ export default function Header({ dark = false }) {
         <Link href="/#work">Our work</Link>
         <Link href="/#about">About</Link>
         <Link href="/#contact">Contact</Link>
-        <Link href="/dashboard">Dashboard</Link>
+        <Link href={isAuthenticated ? "/dashboard" : "/login"}>
+          {isAuthenticated ? "Dashboard" : "Sign in"}
+        </Link>
       </nav>
       <div className="header-actions">
         {isAuthenticated ? (

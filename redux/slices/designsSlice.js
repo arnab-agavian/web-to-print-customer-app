@@ -7,6 +7,7 @@ import {
   validateDesign as validateDesignRequest,
 } from "@/redux/api/designsApi";
 import { uploadFile } from "@/redux/api/filesApi";
+import { sessionExpired, signOut } from "./authSlice";
 
 export const fetchDesignById = createAsyncThunk(
   "designs/fetchById",
@@ -30,6 +31,17 @@ export const fetchDesignResources = createAsyncThunk(
       return { templates, saved };
     } catch (error) {
       return rejectWithValue(error.message);
+    }
+  },
+);
+export const fetchSavedDesigns = createAsyncThunk(
+  "designs/fetchSaved",
+  async (_, { rejectWithValue }) => {
+    try {
+      const result = await getSavedDesigns();
+      return Array.isArray(result) ? result : result?.designs || result?.items || [];
+    } catch (error) {
+      return rejectWithValue(error.message || "Unable to load saved designs.");
     }
   },
 );
@@ -74,21 +86,25 @@ export const saveCurrentDesign = createAsyncThunk(
   },
 );
 
-const designsSlice = createSlice({
-  name: "designs",
-  initialState: {
+const initialState = {
     templates: [],
     saved: [],
     current: null,
     currentStatus: "idle",
     resourceStatus: "idle",
+    savedStatus: "idle",
+    savedError: null,
     validation: null,
     validationStatus: "idle",
     saveStatus: "idle",
     uploadStatus: "idle",
     uploadError: null,
     error: null,
-  },
+};
+
+const designsSlice = createSlice({
+  name: "designs",
+  initialState,
   reducers: {
     clearDesignValidation(state) {
       state.validation = null;
@@ -127,6 +143,18 @@ const designsSlice = createSlice({
       .addCase(fetchDesignResources.rejected, (state, action) => {
         state.resourceStatus = "failed";
         state.error = action.payload;
+      })
+      .addCase(fetchSavedDesigns.pending, (state) => {
+        state.savedStatus = "loading";
+        state.savedError = null;
+      })
+      .addCase(fetchSavedDesigns.fulfilled, (state, action) => {
+        state.savedStatus = "succeeded";
+        state.saved = action.payload;
+      })
+      .addCase(fetchSavedDesigns.rejected, (state, action) => {
+        state.savedStatus = "failed";
+        state.savedError = action.payload;
       })
       .addCase(validateCurrentDesign.pending, (state) => {
         state.validationStatus = "loading";
@@ -179,7 +207,11 @@ const designsSlice = createSlice({
       .addCase(saveCurrentDesign.rejected, (state, action) => {
         state.saveStatus = "failed";
         state.error = action.payload;
-      }),
+      })
+      .addMatcher(
+        (action) => [signOut.fulfilled.type, signOut.rejected.type, sessionExpired.type].includes(action.type),
+        () => initialState,
+      ),
 });
 
 export const { clearDesignValidation } = designsSlice.actions;

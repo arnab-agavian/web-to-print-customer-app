@@ -1,8 +1,7 @@
-import { apiInstance } from './apiClient';
+import { apiInstance } from "./apiClient";
 
-export const approveProof = (proofId) => apiInstance.post(`/proofs/${proofId}/approve`);
+export const approveProof = (proofId) =>
+  apiInstance.post(`/proofs/${proofId}/approve`);
 
-export const requestProofChanges = (proofId, message) => apiInstance.post(
-  `/proofs/${proofId}/change-request`,
-  { message },
-);
+export const requestProofChanges = (proofId, message) =>
+  apiInstance.post(`/proofs/${proofId}/change-request`, { message });

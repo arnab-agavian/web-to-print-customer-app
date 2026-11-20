@@ -10,12 +10,15 @@ import { clearAuthFeedback, signUp } from '@/redux/slices/authSlice';
 export default function Signup() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { signupComplete, signupError, signupStatus, requiresEmailConfirmation } = useSelector((state) => state.auth);
+  const { signupComplete, signupError, signupStatus, requiresEmailConfirmation, session } = useSelector((state) => state.auth);
   const [showPassword, setShowPassword] = useState(false);
   const [validationError, setValidationError] = useState('');
   const loading = signupStatus === 'loading';
 
-  useEffect(() => { dispatch(clearAuthFeedback()); }, [dispatch]);
+  useEffect(() => {
+    dispatch(clearAuthFeedback());
+    if (session?.accessToken) router.replace('/dashboard');
+  }, [dispatch, router, session?.accessToken]);
 
   async function createAccount(event) {
     event.preventDefault();
@@ -40,7 +43,7 @@ export default function Signup() {
       role: 'customer',
     }));
 
-    if (signUp.fulfilled.match(result) && result.payload.session) router.push('/dashboard');
+    if (signUp.fulfilled.match(result) && result.payload.session) router.replace('/dashboard');
   }
 
   return <main className="login-page">

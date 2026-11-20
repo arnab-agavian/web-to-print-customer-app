@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, CreditCard, LockKeyhole, MapPin, PackageCheck } from "lucide-react";
+import { Banknote, Check, CreditCard, LockKeyhole, MapPin, PackageCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -26,6 +26,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const dispatch = useDispatch();
   const [selectedAddressId, setSelectedAddressId] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState("demo-card");
   const items = useSelector((state) => state.cart.items);
   const { status, error } = useSelector((state) => state.checkout);
   const { addresses, addressError, addressStatus } = useSelector((state) => state.dashboard);
@@ -80,13 +81,15 @@ export default function CheckoutPage() {
     const result = await dispatch(
       submitCheckout({
         amount: total,
-        paymentMethod: "demo-card",
+        paymentMethod,
         order: {
           items: orderItems,
           configuration: {
             delivery: "standard",
             deliveryAddressId: deliveryAddress.id,
             deliveryAddress,
+            paymentMethod,
+            paymentStatus: paymentMethod === "cod" ? "pay_on_delivery" : "paid",
           },
         },
       }),
@@ -103,7 +106,7 @@ export default function CheckoutPage() {
         <div className="journey-hero">
           <span>SECURE CHECKOUT</span>
           <h1>Confirm the details.</h1>
-          <p>Demo payment is enabled. No real card will be charged.</p>
+          <p>Choose secure card payment or pay with cash when your order is delivered.</p>
         </div>
       </div>
       <form
@@ -155,18 +158,21 @@ export default function CheckoutPage() {
           <section className="checkout-card">
             <div className="checkout-heading">
               <span>PAYMENT</span>
-              <h2>Demo card payment</h2>
+              <h2>How would you like to pay?</h2>
             </div>
-            <div className="demo-payment">
-              <CreditCard />
-              <div>
-                <b>Demo payment gateway</b>
-                <small>
-                  This simulates a successful payment while the real gateway API
-                  is pending.
-                </small>
-              </div>
-              <span>DEMO</span>
+            <div className="checkout-payment-methods" role="radiogroup" aria-label="Payment method">
+              <label className={paymentMethod === "demo-card" ? "selected" : ""}>
+                <input type="radio" name="paymentMethod" value="demo-card" checked={paymentMethod === "demo-card"} disabled={loading} onChange={() => setPaymentMethod("demo-card")} />
+                <CreditCard />
+                <span><b>Card payment</b><small>Secure demo card payment.</small></span>
+                {paymentMethod === "demo-card" && <Check />}
+              </label>
+              <label className={paymentMethod === "cod" ? "selected" : ""}>
+                <input type="radio" name="paymentMethod" value="cod" checked={paymentMethod === "cod"} disabled={loading} onChange={() => setPaymentMethod("cod")} />
+                <Banknote />
+                <span><b>Cash on delivery</b><small>Pay when your order is delivered.</small></span>
+                {paymentMethod === "cod" && <Check />}
+              </label>
             </div>
             {error && (
               <p className="studio-error" role="alert">
@@ -210,17 +216,17 @@ export default function CheckoutPage() {
             disabled={loading || addressLoading || !selectedAddress || items.length === 0}
           >
             {loading ? (
-              <ButtonLoader label="Processing payment…" />
+              <ButtonLoader label={paymentMethod === "cod" ? "Placing COD order…" : "Processing payment…"} />
             ) : (
               <>
-                <LockKeyhole />
-                Pay & place order
+                {paymentMethod === "cod" ? <Banknote /> : <LockKeyhole />}
+                {paymentMethod === "cod" ? "Place COD order" : "Pay & place order"}
               </>
             )}
           </button>
           <p>
             <PackageCheck />
-            Order confirmation appears immediately after demo payment.
+            {paymentMethod === "cod" ? "Payment will be collected when the order is delivered." : "Order confirmation appears immediately after payment."}
           </p>
         </aside>
       </form>

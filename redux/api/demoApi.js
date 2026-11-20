@@ -444,7 +444,7 @@ export async function demoApiAdapter(config) {
     return success(config, currentDemoCart(), 201, "Cart item added.");
   }
   const cartItemMatch = url.match(/^\/cart\/items\/([^/]+)$/);
-  if (cartItemMatch && method === "patch") {
+  if (cartItemMatch && method === "put") {
     demoCartItems = demoCartItems.map((item) => {
       if (item.id !== cartItemMatch[1]) return item;
       const updated = { ...item, ...data, configuration: data.configuration || item.configuration, updatedAt: new Date().toISOString() };
@@ -465,8 +465,7 @@ export async function demoApiAdapter(config) {
       mimeType: "image/png",
       size: 1024,
       category: "artwork",
-      signedUrl: "https://example.com/demo-upload.png",
-      signedUrlExpiresIn: 3600,
+      publicUrl: "https://example.com/demo-upload.png",
     }, 201);
   }
   if (url === "/designs" && method === "get")
@@ -512,7 +511,7 @@ export async function demoApiAdapter(config) {
   }
   if (url === "/account/profile" && method === "get")
     return success(config, profile);
-  if (url === "/account/profile" && method === "patch") {
+  if (url === "/account/profile" && method === "put") {
     profile = { ...profile, ...data };
     return success(config, profile);
   }
@@ -526,14 +525,14 @@ export async function demoApiAdapter(config) {
     return success(config, created, 201, "Address created.");
   }
   const defaultAddressMatch = url.match(/^\/addresses\/([^/]+)\/default$/);
-  if (defaultAddressMatch && method === "patch") {
+  if (defaultAddressMatch && method === "put") {
     addresses = addresses.map((item) => ({ ...item, isDefault: item.id === defaultAddressMatch[1] }));
     return success(config, addresses.find((item) => item.id === defaultAddressMatch[1]));
   }
   const addressMatch = url.match(/^\/addresses\/([^/]+)$/);
   if (addressMatch && method === "get")
     return success(config, addresses.find((item) => item.id === addressMatch[1]));
-  if (addressMatch && method === "patch") {
+  if (addressMatch && method === "put") {
     if (data.isDefault) addresses = addresses.map((item) => ({ ...item, isDefault: false }));
     addresses = addresses.map((item) => item.id === addressMatch[1] ? { ...item, ...data } : item);
     return success(config, addresses.find((item) => item.id === addressMatch[1]));

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { clearStoredSession, getAccessToken, getStoredSession, storeSession } from './authSession';
+import { clearStoredSession, getAccessToken, getStoredSession, notifySessionExpired, storeSession } from './authSession';
 import { demoApiAdapter } from './demoApi';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
@@ -64,6 +64,7 @@ apiInstance.interceptors.response.use(
       }
 
       clearStoredSession();
+      notifySessionExpired();
     }
 
     const responseBody = error.response?.data;

@@ -1,2 +1,4 @@
 import CartPage from '@/components/ApiCartPage';
-export default function Page(){return <CartPage/>}
+import AuthGuard from '@/components/AuthGuard';
+
+export default function Page(){return <AuthGuard><CartPage/></AuthGuard>}

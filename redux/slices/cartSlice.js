@@ -6,6 +6,7 @@ import {
   removeCartItemRequest,
   updateCartItemRequest,
 } from '@/redux/api/cartApi';
+import { sessionExpired, signOut } from './authSlice';
 
 const requestError = (error, rejectWithValue) => rejectWithValue(error.message);
 
@@ -64,16 +65,18 @@ function replaceCart(state, cart) {
   state.summary = cart?.summary || emptySummary;
 }
 
-const cartSlice = createSlice({
-  name: 'cart',
-  initialState: {
+const initialState = {
     id: null,
     items: [],
     summary: emptySummary,
     status: 'idle',
     mutationStatus: 'idle',
     error: null,
-  },
+};
+
+const cartSlice = createSlice({
+  name: 'cart',
+  initialState,
   reducers: {
     // Kept for the legacy configurator while the API-driven studio uses addCartItem.
     addToCart(state, action) {
@@ -133,6 +136,10 @@ const cartSlice = createSlice({
         state.mutationStatus = 'failed';
         state.error = action.payload;
       },
+    )
+    .addMatcher(
+      (action) => [signOut.fulfilled.type, signOut.rejected.type, sessionExpired.type].includes(action.type),
+      () => initialState,
     ),
 });
 
