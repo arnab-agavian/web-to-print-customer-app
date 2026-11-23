@@ -13,7 +13,7 @@ export default function AuthGuard({ children }) {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      router.replace(`/login?returnTo=${encodeURIComponent(pathname || '/dashboard')}`);
+      router.replace(`/login?returnTo=${encodeURIComponent(pathname || '/dashboard/overview')}`);
     }
   }, [isAuthenticated, pathname, router]);
 

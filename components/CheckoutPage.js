@@ -151,7 +151,7 @@ export default function CheckoutPage() {
                 <MapPin />
                 <b>No delivery address found.</b>
                 <p>Add an address from your customer dashboard before placing this order.</p>
-                <button type="button" onClick={() => router.push("/dashboard")}>Add an address</button>
+                <button type="button" onClick={() => router.push("/dashboard/profile")}>Add an address</button>
               </div>
             )}
           </section>

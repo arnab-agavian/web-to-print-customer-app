@@ -158,6 +158,34 @@ let demoDesigns = [
 
 let demoCartItems = [];
 
+let demoNotifications = [
+  {
+    id: "notification-proof-2052",
+    type: "proof_ready",
+    title: "Your proof is ready",
+    message: "The production proof for order DH-2052 is ready to review.",
+    isRead: false,
+    createdAt: "2026-11-23T15:20:00Z",
+  },
+  {
+    id: "notification-production-2048",
+    type: "order_update",
+    title: "Order moved to production",
+    message: "Order DH-2048 has entered production.",
+    isRead: false,
+    createdAt: "2026-11-22T09:45:00Z",
+  },
+  {
+    id: "notification-complete-1984",
+    type: "order_complete",
+    title: "Order completed",
+    message: "Order DH-1984 has been completed.",
+    isRead: true,
+    readAt: "2026-10-20T08:00:00Z",
+    createdAt: "2026-10-19T12:10:00Z",
+  },
+];
+
 let profile = {
   id: "demo-customer",
   fullName: "Maya Brooks",
@@ -508,6 +536,49 @@ export async function demoApiAdapter(config) {
         },
       ],
     });
+  }
+  if (url === "/notifications" && method === "get") {
+    const limit = Math.max(1, Number(config.params?.limit || 20));
+    const offset = Math.max(0, Number(config.params?.offset || 0));
+    const unreadOnly = config.params?.unreadOnly === true || config.params?.unreadOnly === "true";
+    const type = config.params?.type;
+    const filtered = demoNotifications.filter((notification) =>
+      (!unreadOnly || !notification.isRead) && (!type || notification.type === type));
+    return success(config, {
+      notifications: filtered.slice(offset, offset + limit),
+      total: filtered.length,
+      limit,
+      offset,
+      unreadCount: demoNotifications.filter((notification) => !notification.isRead).length,
+    });
+  }
+  if (url === "/notifications/unread-count" && method === "get")
+    return success(config, {
+      unreadCount: demoNotifications.filter((notification) => !notification.isRead).length,
+    });
+  if (url === "/notifications/read-all" && method === "patch") {
+    const readAt = new Date().toISOString();
+    demoNotifications = demoNotifications.map((notification) => ({
+      ...notification,
+      isRead: true,
+      readAt: notification.readAt || readAt,
+    }));
+    return success(config, { updated: demoNotifications.length });
+  }
+  const notificationReadMatch = url.match(/^\/notifications\/([^/]+)\/read$/);
+  if (notificationReadMatch && method === "patch") {
+    const id = notificationReadMatch[1];
+    demoNotifications = demoNotifications.map((notification) =>
+      notification.id === id
+        ? { ...notification, isRead: true, readAt: new Date().toISOString() }
+        : notification);
+    return success(config, demoNotifications.find((notification) => notification.id === id));
+  }
+  const notificationMatch = url.match(/^\/notifications\/([^/]+)$/);
+  if (notificationMatch && method === "delete") {
+    const id = notificationMatch[1];
+    demoNotifications = demoNotifications.filter((notification) => notification.id !== id);
+    return success(config, { id, deleted: true });
   }
   if (url === "/account/profile" && method === "get")
     return success(config, profile);

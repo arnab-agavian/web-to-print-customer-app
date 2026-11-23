@@ -61,7 +61,7 @@ export default function OrderDetailsPage({ orderId }) {
         <span className="loading-brand">DH</span>
         <h1>Order unavailable.</h1>
         <p>{currentError || 'The order details could not be loaded.'}</p>
-        <div><button className="button button-primary" type="button" onClick={() => dispatch(fetchOrderById(orderId))}>Try again</button><Link className="button button-lime" href="/dashboard">Back to dashboard</Link></div>
+        <div><button className="button button-primary" type="button" onClick={() => dispatch(fetchOrderById(orderId))}>Try again</button><Link className="button button-lime" href="/dashboard/orders">Back to dashboard</Link></div>
       </main>
     );
   }
@@ -78,7 +78,7 @@ export default function OrderDetailsPage({ orderId }) {
       <div className="journey-dark compact">
         <Header />
         <div className="order-detail-hero">
-          <Link href="/dashboard"><ArrowLeft />Back to order history</Link>
+          <Link href="/dashboard/orders"><ArrowLeft />Back to order history</Link>
           <div>
             <span>ORDER DETAILS</span>
             <h1>{order.order_number}</h1>
@@ -136,7 +136,7 @@ export default function OrderDetailsPage({ orderId }) {
           <section className="order-detail-card order-total-card">
             <ReceiptText />
             <span>ORDER TOTAL</span>
-            <dl><div><dt>Subtotal</dt><dd>{money(order.subtotal, order.currency)}</dd></div><div><dt>Tax</dt><dd>{money(order.tax, order.currency)}</dd></div><div className="total"><dt>Total</dt><dd>{money(order.total, order.currency)}</dd></div></dl>
+            <dl><div><dt>Subtotal</dt><dd>{money(order.subtotal, order.currency)}</dd></div><div><dt>Tax</dt><dd>{money(order.tax, order.currency)}</dd></div><div className="total"><dt>Total</dt><dd>{money(order?.total, order.currency)}</dd></div></dl>
           </section>
 
           <section className="order-detail-card detail-info-card">

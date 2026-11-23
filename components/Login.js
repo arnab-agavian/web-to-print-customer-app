@@ -12,9 +12,9 @@ export default function Login(){
   const {loginError,loginStatus,session}=useSelector((state)=>state.auth);
   const [show,setShow]=useState(false);
   const destination=()=>{
-    if(typeof window==='undefined')return '/dashboard';
+    if(typeof window==='undefined')return '/dashboard/overview';
     const value=new URLSearchParams(window.location.search).get('returnTo');
-    return value?.startsWith('/')&&!value.startsWith('//')?value:'/dashboard';
+    return value?.startsWith('/')&&!value.startsWith('//')?value:'/dashboard/overview';
   };
   useEffect(()=>{
     dispatch(clearAuthFeedback());

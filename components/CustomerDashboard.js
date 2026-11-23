@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import {
-  Bell,
   Check,
   Download,
   FileCheck2,
@@ -80,6 +79,7 @@ const addressFields = [
   ["Postal code", "postalCode"],
   ["Country code", "countryCode"],
 ];
+const addressFieldNames = new Set(addressFields.map(([, name]) => name));
 const addressAutoComplete = {
   recipientName: "name",
   phone: "tel",
@@ -121,8 +121,8 @@ const validateAddress = (values) => {
     errors.postalCode = "Enter a valid postal code.";
   if (!values.countryCode.trim())
     errors.countryCode = "Country code is required.";
-  else if (!/^[A-Za-z]{2,3}$/.test(values.countryCode.trim()))
-    errors.countryCode = "Use a 2 or 3 letter country code.";
+  else if (!/^[A-Za-z]{2}$/.test(values.countryCode.trim()))
+    errors.countryCode = "Use a 2-letter country code.";
   return errors;
 };
 
@@ -147,11 +147,11 @@ function ProfileSection({ account, dashboard, dispatch }) {
       city: selectedAddress?.city || "",
       state: selectedAddress?.state || "",
       postalCode: selectedAddress?.postalCode || "",
-      countryCode: selectedAddress?.countryCode || "INR",
+      countryCode: selectedAddress?.countryCode || "IN",
       isDefault: selectedAddress?.isDefault || addresses.length === 0,
     },
     validate: validateAddress,
-    onSubmit: async (values, { resetForm, setStatus }) => {
+    onSubmit: async (values, { resetForm, setErrors, setStatus, setTouched }) => {
       setStatus(null);
       const address = {
         ...Object.fromEntries(
@@ -172,6 +172,23 @@ function ProfileSection({ account, dashboard, dispatch }) {
         setEditingId(null);
         resetForm();
         setStatus("saved");
+        return;
+      }
+
+      const serverErrors = Array.isArray(result.payload?.errors)
+        ? result.payload.errors
+        : [];
+      const fieldErrors = Object.fromEntries(
+        serverErrors
+          .filter(({ field, message }) => addressFieldNames.has(field) && message)
+          .map(({ field, message }) => [field, message]),
+      );
+      if (Object.keys(fieldErrors).length) {
+        setErrors(fieldErrors);
+        setTouched(
+          Object.fromEntries(Object.keys(fieldErrors).map((field) => [field, true])),
+          false,
+        );
       }
     },
   });
@@ -395,7 +412,7 @@ function ProfileSection({ account, dashboard, dispatch }) {
   );
 }
 
-export default function CustomerDashboard() {
+export default function CustomerDashboard({ section = "overview" }) {
   const dispatch = useDispatch();
   const router = useRouter();
   const [proofMessage, setProofMessage] = useState("");
@@ -420,8 +437,11 @@ export default function CustomerDashboard() {
     if (dashboard.status === "idle") dispatch(fetchDashboardData());
   }, [dashboard.status, dispatch]);
   useEffect(() => {
-    if (dashboard.activeModule === "designs") dispatch(fetchSavedDesigns());
-  }, [dashboard.activeModule, dispatch]);
+    if (section === "designs") dispatch(fetchSavedDesigns());
+  }, [dispatch, section]);
+  useEffect(() => {
+    if (dashboard.activeModule !== section) dispatch(setDashboardModule(section));
+  }, [dashboard.activeModule, dispatch, section]);
   const claims = decodeAccessToken(session?.accessToken) || {};
   const profile = dashboard.profile || {};
   const account = {
@@ -521,7 +541,7 @@ export default function CustomerDashboard() {
                 <small>{date(order.created_at)}</small>
               </div>
               <em className={`status ${order.status}`}>{order.status}</em>
-              <strong>{money(order.total)}</strong>
+              <strong>{money(order?.total)}</strong>
               {reorder ? (
                 <button
                   disabled={reorderingId === order.id}
@@ -717,10 +737,6 @@ export default function CustomerDashboard() {
             <h1>Good morning, {account.fullName?.split(" ")[0]}.</h1>
             <p>Here is what is moving through the studio.</p>
           </div>
-          <button className="icon-button light">
-            <Bell />
-            <i />
-          </button>
         </div>
         <div className="status-cards">
           <div>
@@ -775,12 +791,9 @@ export default function CustomerDashboard() {
                 {proof.product_name} · {proof.order_number}
               </p>
               <small>Updated {date(proof.created_at)}</small>
-              <button
-                className="button button-dark"
-                onClick={() => dispatch(setDashboardModule("proofs"))}
-              >
+              <Link className="button button-dark" href="/dashboard/proofs">
                 Review proof
-              </button>
+              </Link>
             </div>
           </section>
         )}
@@ -789,12 +802,12 @@ export default function CustomerDashboard() {
             <h2>Recent orders</h2>
             <p>Track or reorder any past job.</p>
           </div>
-          <button
+          <Link
             className="text-link dark-link"
-            onClick={() => dispatch(setDashboardModule("orders"))}
+            href="/dashboard/orders"
           >
             View all
-          </button>
+          </Link>
         </div>
         <div className="module-orders compact">
           {orders.slice(0, 3).map((order) => (
@@ -811,7 +824,7 @@ export default function CustomerDashboard() {
                 </span>
               </div>
               <em className={`status ${order.status}`}>{order.status}</em>
-              <strong>{money(order.total)}</strong>
+              <strong>{money(order?.total)}</strong>
             </article>
           ))}
         </div>
@@ -832,7 +845,7 @@ export default function CustomerDashboard() {
     designs: Designs(),
     reorder: Orders({ reorder: true }),
     invoices: Invoices(),
-  }[dashboard.activeModule];
+  }[section];
   return (
     <main className="dashboard-page">
       <Header dark />
@@ -853,14 +866,15 @@ export default function CustomerDashboard() {
           </div>
           <nav>
             {modules.map(([id, label, Icon]) => (
-              <button
-                className={dashboard.activeModule === id ? "active" : ""}
-                onClick={() => dispatch(setDashboardModule(id))}
+              <Link
+                href={`/dashboard/${id}`}
+                className={section === id ? "active" : ""}
+                aria-current={section === id ? "page" : undefined}
                 key={id}
               >
                 <Icon />
                 {label}
-              </button>
+              </Link>
             ))}
           </nav>
           <button onClick={logout} disabled={logoutStatus === "loading"}>

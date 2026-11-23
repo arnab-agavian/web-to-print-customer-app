@@ -6,12 +6,21 @@ const addressList=(result)=>Array.isArray(result)?result:result?.addresses||resu
 const addressId=(address)=>address?.id||address?._id;
 const addressResult=(result)=>result?.address||result;
 const refreshAddresses=async()=>addressList(await getAddresses());
+const addressRequestError=(error,fallback)=>{
+  const errors=Array.isArray(error?.data?.errors)
+    ? error.data.errors.filter((item)=>typeof item?.field==='string'&&typeof item?.message==='string')
+    : [];
+  return{
+    message:errors.length?'Please correct the highlighted address fields.':error?.message||fallback,
+    errors,
+  };
+};
 
 export const fetchDashboardData=createAsyncThunk('dashboard/fetch',async(_,{rejectWithValue})=>{try{const[profile,invoices]=await Promise.all([getProfile(),getInvoices()]);return{profile,invoices}}catch(error){return rejectWithValue(error.message)}});
 export const fetchCustomerAddresses=createAsyncThunk('dashboard/getAddresses',async(_,{rejectWithValue})=>{try{return addressList(await getAddresses())}catch(error){return rejectWithValue(error.message)}});
 export const fetchCustomerAddress=createAsyncThunk('dashboard/getAddress',async(id,{rejectWithValue})=>{try{return addressResult(await getAddress(id))}catch(error){return rejectWithValue(error.message)}});
-export const createCustomerAddress=createAsyncThunk('dashboard/createAddress',async(address,{rejectWithValue})=>{try{await createAddress(address);return await refreshAddresses()}catch(error){return rejectWithValue(error.message)}});
-export const updateCustomerAddress=createAsyncThunk('dashboard/updateAddress',async({id,address},{rejectWithValue})=>{try{await updateAddress(id,address);return await refreshAddresses()}catch(error){return rejectWithValue(error.message)}});
+export const createCustomerAddress=createAsyncThunk('dashboard/createAddress',async(address,{rejectWithValue})=>{try{await createAddress(address);return await refreshAddresses()}catch(error){return rejectWithValue(addressRequestError(error,'Unable to save this address.'))}});
+export const updateCustomerAddress=createAsyncThunk('dashboard/updateAddress',async({id,address},{rejectWithValue})=>{try{await updateAddress(id,address);return await refreshAddresses()}catch(error){return rejectWithValue(addressRequestError(error,'Unable to update this address.'))}});
 export const removeCustomerAddress=createAsyncThunk('dashboard/deleteAddress',async(id,{rejectWithValue})=>{try{await deleteAddress(id);return await refreshAddresses()}catch(error){return rejectWithValue(error.message)}});
 export const makeCustomerAddressDefault=createAsyncThunk('dashboard/defaultAddress',async(id,{rejectWithValue})=>{try{await setDefaultAddress(id);return await refreshAddresses()}catch(error){return rejectWithValue(error.message)}});
 
@@ -29,10 +38,10 @@ const dashboardSlice=createSlice({name:'dashboard',initialState,reducers:{setDas
   .addCase(fetchCustomerAddress.rejected,(state,action)=>{state.addressStatus='failed';state.addressError=action.payload})
   .addCase(createCustomerAddress.pending,(state)=>{state.addressStatus='loading';state.addressError=null})
   .addCase(createCustomerAddress.fulfilled,(state,action)=>{state.addressStatus='succeeded';state.addresses=action.payload})
-  .addCase(createCustomerAddress.rejected,(state,action)=>{state.addressStatus='failed';state.addressError=action.payload})
+  .addCase(createCustomerAddress.rejected,(state,action)=>{state.addressStatus='failed';state.addressError=action.payload?.message||action.payload})
   .addCase(updateCustomerAddress.pending,(state)=>{state.addressStatus='loading';state.addressError=null})
   .addCase(updateCustomerAddress.fulfilled,(state,action)=>{state.addressStatus='succeeded';state.addresses=action.payload})
-  .addCase(updateCustomerAddress.rejected,(state,action)=>{state.addressStatus='failed';state.addressError=action.payload})
+  .addCase(updateCustomerAddress.rejected,(state,action)=>{state.addressStatus='failed';state.addressError=action.payload?.message||action.payload})
   .addCase(removeCustomerAddress.pending,(state)=>{state.addressStatus='loading';state.addressError=null})
   .addCase(removeCustomerAddress.fulfilled,(state,action)=>{state.addressStatus='succeeded';state.addresses=action.payload})
   .addCase(removeCustomerAddress.rejected,(state,action)=>{state.addressStatus='failed';state.addressError=action.payload})

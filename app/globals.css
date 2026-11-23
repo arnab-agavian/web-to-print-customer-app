@@ -21,3 +21,268 @@
 @media(prefers-reduced-motion:reduce){.loading-spinner,.skeleton-line,.skeleton-shape{animation-duration:1.8s}}
 .product-grid>.product-api-state:not(.error){display:none}.dash-module{position:relative}.cart-layout>.empty-state>h2:only-child{display:flex;align-items:center;justify-content:center;gap:13px}.cart-layout>.empty-state>h2:only-child:before,.dashboard-loading:before{content:'';display:inline-block;width:22px;height:22px;border:3px solid #11131726;border-top-color:var(--orange);border-radius:50%;animation:loading-spin .72s linear infinite}.dashboard-loading{display:flex;align-items:center;justify-content:center}.dashboard-loading:has(.loading-state):before{display:none}button:disabled{cursor:not-allowed}.dash-module button:disabled{opacity:.6}
 .configure-load-error h1{font:600 clamp(38px,5vw,64px) var(--font-display);letter-spacing:-.05em;margin:8px 0 0}.configure-load-error>div{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}.configure-load-error .button{min-width:145px}
+
+/* Keep the header menu control visible against dark standalone page headers. */
+.site-header .menu-button {
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    place-items: center;
+    border: 1px solid #4a4d52;
+    border-radius: 50%;
+    background: transparent;
+    color: #fff
+}
+
+@media(max-width:900px) {
+    .site-header .menu-button {
+        display: grid
+    }
+}
+
+.notification-center {
+    position: relative
+}
+
+.notification-trigger {
+    overflow: visible
+}
+
+.notification-badge {
+    position: absolute;
+    top: -4px;
+    right: -5px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    display: grid;
+    place-items: center;
+    border: 2px solid #15171b;
+    border-radius: 10px;
+    background: var(--orange);
+    color: #fff;
+    font: 700 9px var(--font-display)
+}
+
+.notification-dropdown {
+    position: absolute;
+    z-index: 80;
+    top: calc(100% + 12px);
+    right: 0;
+    width: min(390px, calc(100vw - 28px));
+    overflow: hidden;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    box-shadow: 0 24px 70px #08090b40
+}
+
+.notification-dropdown>header {
+    min-height: 78px;
+    padding: 15px 17px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    border-bottom: 1px solid var(--line);
+    background: #f7f7f3
+}
+
+.notification-dropdown>header span {
+    display: block;
+    color: var(--orange);
+    font: 700 9px var(--font-display);
+    letter-spacing: .13em
+}
+
+.notification-dropdown>header h2 {
+    margin: 4px 0 0;
+    font: 600 1.25rem var(--font-display)
+}
+
+.notification-dropdown>header button {
+    min-height: 36px;
+    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 0;
+    background: var(--ink);
+    color: #fff;
+    font: 700 .65rem var(--font-display);
+    text-transform: uppercase;
+    white-space: nowrap
+}
+
+.notification-dropdown>header button:disabled {
+    opacity: .42;
+    cursor: not-allowed
+}
+
+.notification-dropdown>header svg {
+    width: 15px
+}
+
+.notification-list {
+    max-height: min(430px, 65vh);
+    overflow-y: auto;
+    overscroll-behavior: contain
+}
+
+.notification-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    border-bottom: 1px solid #e7e7e2;
+    background: #fff
+}
+
+.notification-item.unread {
+    background: #f7f9f1
+}
+
+.notification-copy {
+    min-width: 0;
+    padding: 15px 10px 15px 16px;
+    display: grid;
+    grid-template-columns: 7px minmax(0, 1fr);
+    align-items: start;
+    gap: 10px;
+    border: 0;
+    background: transparent;
+    text-align: left
+}
+
+.notification-copy:disabled {
+    cursor: wait
+}
+
+.notification-copy>i {
+    width: 7px;
+    height: 7px;
+    margin-top: 5px;
+    border-radius: 50%;
+    background: #c7c9c3
+}
+
+.notification-item.unread .notification-copy>i {
+    background: var(--orange)
+}
+
+.notification-copy strong,
+.notification-copy p,
+.notification-copy small {
+    display: block
+}
+
+.notification-copy strong {
+    font: 700 .82rem var(--font-display)
+}
+
+.notification-copy p {
+    margin: 5px 0 7px;
+    color: #666b68;
+    font-size: .74rem;
+    line-height: 1.45
+}
+
+.notification-copy small {
+    overflow: hidden;
+    color: #929692;
+    font: 700 .58rem var(--font-display);
+    letter-spacing: .05em;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap
+}
+
+.notification-actions {
+    padding: 12px 10px 12px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px
+}
+
+.notification-actions button {
+    width: 31px;
+    height: 31px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: #686d69
+}
+
+.notification-actions button:last-child:hover {
+    color: #a33118
+}
+
+.notification-actions button:disabled {
+    opacity: .55
+}
+
+.notification-actions svg {
+    width: 14px
+}
+
+.notification-state {
+    min-height: 150px;
+    padding: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 11px;
+    color: #777c78;
+    text-align: center;
+    font-size: .8rem
+}
+
+.notification-state>svg {
+    width: 28px;
+    color: #a0a49f
+}
+
+.notification-state p {
+    margin: 0
+}
+
+.notification-state button {
+    border: 0;
+    background: var(--ink);
+    color: #fff;
+    padding: 9px 12px;
+    font: 700 .68rem var(--font-display);
+    text-transform: uppercase
+}
+
+.notification-action-error {
+    margin: 0;
+    padding: 10px 14px;
+    background: #fff0eb;
+    color: #a33118;
+    font-size: .72rem
+}
+
+@media(max-width:620px) {
+    .site-header .notification-center .notification-trigger {
+        display: grid
+    }
+
+    .notification-dropdown {
+        position: fixed;
+        top: 72px;
+        right: 12px;
+        left: 12px;
+        width: auto;
+        max-height: calc(100vh - 84px)
+    }
+
+    .notification-list {
+        max-height: calc(100vh - 175px)
+    }
+
+    .notification-dropdown>header {
+        padding-inline: 14px
+    }
+}
