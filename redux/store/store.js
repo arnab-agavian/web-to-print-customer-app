@@ -8,6 +8,7 @@ import productsReducer from '@/redux/slices/productsSlice';
 import checkoutReducer from '@/redux/slices/checkoutSlice';
 import dashboardReducer from '@/redux/slices/dashboardSlice';
 import designsReducer from '@/redux/slices/designsSlice';
+import notificationsReducer from '@/redux/slices/notificationsSlice';
 
 export function makeStore() {
   return configureStore({
@@ -18,6 +19,7 @@ export function makeStore() {
       configurator: configuratorReducer,
       dashboard: dashboardReducer,
       designs: designsReducer,
+      notifications: notificationsReducer,
       orders: ordersReducer,
       pricing: pricingReducer,
       products: productsReducer,

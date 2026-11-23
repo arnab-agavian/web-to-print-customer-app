@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import {
-  Bell,
   Check,
   Download,
   FileCheck2,
@@ -738,10 +737,6 @@ export default function CustomerDashboard({ section = "overview" }) {
             <h1>Good morning, {account.fullName?.split(" ")[0]}.</h1>
             <p>Here is what is moving through the studio.</p>
           </div>
-          <button className="icon-button light">
-            <Bell />
-            <i />
-          </button>
         </div>
         <div className="status-cards">
           <div>
