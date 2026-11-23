@@ -21,3 +21,21 @@
 @media(prefers-reduced-motion:reduce){.loading-spinner,.skeleton-line,.skeleton-shape{animation-duration:1.8s}}
 .product-grid>.product-api-state:not(.error){display:none}.dash-module{position:relative}.cart-layout>.empty-state>h2:only-child{display:flex;align-items:center;justify-content:center;gap:13px}.cart-layout>.empty-state>h2:only-child:before,.dashboard-loading:before{content:'';display:inline-block;width:22px;height:22px;border:3px solid #11131726;border-top-color:var(--orange);border-radius:50%;animation:loading-spin .72s linear infinite}.dashboard-loading{display:flex;align-items:center;justify-content:center}.dashboard-loading:has(.loading-state):before{display:none}button:disabled{cursor:not-allowed}.dash-module button:disabled{opacity:.6}
 .configure-load-error h1{font:600 clamp(38px,5vw,64px) var(--font-display);letter-spacing:-.05em;margin:8px 0 0}.configure-load-error>div{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}.configure-load-error .button{min-width:145px}
+
+/* Keep the header menu control visible against dark standalone page headers. */
+.site-header .menu-button {
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    place-items: center;
+    border: 1px solid #4a4d52;
+    border-radius: 50%;
+    background: transparent;
+    color: #fff
+}
+
+@media(max-width:900px) {
+    .site-header .menu-button {
+        display: grid
+    }
+}

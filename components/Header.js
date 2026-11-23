@@ -37,7 +37,7 @@ export default function Header({ dark = false }) {
           Heroes
         </span>
       </Link>
-      <nav className={open ? "nav-open" : ""}>
+      <nav id="site-navigation" className={open ? "nav-open" : ""}>
         <Link href="/#products">Products</Link>
         <Link href="/#work">Our work</Link>
         <Link href="/#about">About</Link>
@@ -68,9 +68,12 @@ export default function Header({ dark = false }) {
           {cartCount > 0 && <span className="cart-count">{cartCount}</span>}
         </Link>
         <button
+          type="button"
           className="menu-button"
           onClick={() => setOpen(!open)}
-          aria-label="Menu"
+          aria-label={open ? "Close menu" : "Open menu"}
+          aria-controls="site-navigation"
+          aria-expanded={open}
         >
           <Menu size={22} />
         </button>
