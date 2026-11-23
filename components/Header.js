@@ -42,7 +42,7 @@ export default function Header({ dark = false }) {
         <Link href="/#work">Our work</Link>
         <Link href="/#about">About</Link>
         <Link href="/#contact">Contact</Link>
-        <Link href={isAuthenticated ? "/dashboard" : "/login"}>
+        <Link href={isAuthenticated ? "/dashboard/overview" : "/login"}>
           {isAuthenticated ? "Dashboard" : "Sign in"}
         </Link>
       </nav>

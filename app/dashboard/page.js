@@ -1,5 +1,6 @@
-import CustomerDashboard from '@/components/CustomerDashboard';
-import AuthGuard from '@/components/AuthGuard';
+import { redirect } from 'next/navigation';
 
-export default function Page(){return <AuthGuard><CustomerDashboard/></AuthGuard>}
+export default function Page() {
+  redirect('/dashboard/overview');
+}
 

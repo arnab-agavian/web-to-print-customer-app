@@ -17,7 +17,7 @@ export default function Signup() {
 
   useEffect(() => {
     dispatch(clearAuthFeedback());
-    if (session?.accessToken) router.replace('/dashboard');
+    if (session?.accessToken) router.replace('/dashboard/overview');
   }, [dispatch, router, session?.accessToken]);
 
   async function createAccount(event) {
@@ -43,7 +43,7 @@ export default function Signup() {
       role: 'customer',
     }));
 
-    if (signUp.fulfilled.match(result) && result.payload.session) router.replace('/dashboard');
+    if (signUp.fulfilled.match(result) && result.payload.session) router.replace('/dashboard/overview');
   }
 
   return <main className="login-page">
